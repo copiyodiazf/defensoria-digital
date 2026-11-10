@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Defensoría Digital · Maqueta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+@property --ang { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+:root{
+  --bg:#060a14; --bg2:#0a1121; --sup:#0e1629; --sup2:#131d36; --borde:rgba(255,255,255,.08); --borde2:rgba(255,255,255,.15);
+  --txt:#e9eef8; --muted:#9aa6c0; --dim:#6c7893;
+  --am:#f7cf1d; --ve:#5fc24a; --az:#5b84ff; --ro:#ff4a5c; --wa:#25d366;
+  --grad:linear-gradient(90deg,var(--am),var(--ve),var(--az),var(--ro));
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Plus Jakarta Sans',"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(--txt);line-height:1.55;font-size:15.5px;overflow-x:hidden}
+img{display:block;max-width:100%}
+a{color:inherit}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+::selection{background:var(--az);color:#fff}
+
+/* ---------- fondo con auroras en los colores del logo ---------- */
+.aurora{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.aurora i{position:absolute;width:46vw;height:46vw;border-radius:50%;filter:blur(110px);opacity:.16;animation:deriva 26s ease-in-out infinite alternate}
+.aurora i:nth-child(1){background:var(--az);top:-12vw;left:-8vw}
+.aurora i:nth-child(2){background:var(--ro);top:30vh;right:-14vw;animation-delay:-6s}
+.aurora i:nth-child(3){background:var(--ve);bottom:-18vw;left:18vw;animation-delay:-12s}
+.aurora i:nth-child(4){background:var(--am);top:45vh;left:-16vw;opacity:.09;animation-delay:-18s}
+@keyframes deriva{to{transform:translate(9vw,7vh) scale(1.15)}}
+.grano{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.05;background-image:radial-gradient(#fff 1px,transparent 1px);background-size:3px 3px}
+
+/* ---------- pantalla de carga ---------- */
+#pre{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .6s,visibility .6s}
+#pre.fuera{opacity:0;visibility:hidden}
+#pre img{width:110px;animation:giro 1.3s cubic-bezier(.2,.9,.2,1) both}
+#pre b{font-size:20px;letter-spacing:.5px;animation:sube .8s .3s both}
+#pre .carga{width:180px;height:4px;border-radius:4px;background:var(--borde);overflow:hidden}
+#pre .carga i{display:block;height:100%;width:100%;background:var(--grad);transform-origin:left;animation:carga 1.2s ease-out both}
+@keyframes giro{from{transform:rotate(-200deg) scale(.3);opacity:0}to{transform:none;opacity:1}}
+@keyframes carga{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes sube{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ---------- cinta, menú de la demo, aviso ---------- */
+.cinta{background:#000;color:#fde68a;font-size:12px;text-align:center;padding:6px 12px;letter-spacing:.3px}
+.demo-nav{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:60;background:rgba(14,22,41,.75);backdrop-filter:blur(16px);border:1px solid var(--borde2);border-radius:999px;padding:6px;display:flex;gap:4px;box-shadow:0 18px 50px rgba(0,0,0,.5)}
+.demo-nav button{background:transparent;border:0;color:var(--muted);padding:10px 16px;border-radius:999px;font-size:14px;font-weight:700;white-space:nowrap;transition:.25s}
+.demo-nav button:hover{color:#fff}
+.demo-nav button.activo{background:#fff;color:#0b1222}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-140px);background:var(--sup2);border:1px solid var(--borde2);color:#fff;padding:12px 18px;border-radius:12px;z-index:90;transition:transform .45s cubic-bezier(.2,.9,.2,1);font-size:14px;max-width:92vw;box-shadow:0 14px 40px rgba(0,0,0,.4)}
+.toast.ver{transform:translateX(-50%) translateY(0)}
+.vista{display:none;padding-bottom:110px}
+.vista.activa{display:block;animation:vistaIn .55s cubic-bezier(.2,.9,.2,1)}
+@keyframes vistaIn{from{opacity:0;transform:translateY(18px) scale(.99)}to{opacity:1;transform:none}}
+
+/* ---------- utilidades ---------- */
+.ancho{max-width:1180px;margin:0 auto;padding:0 20px}
+.rev{opacity:0;transform:translateY(34px);transition:opacity .8s cubic-bezier(.2,.9,.2,1),transform .8s cubic-bezier(.2,.9,.2,1);transition-delay:calc(var(--i,0) * 90ms)}
+.rev.vis{opacity:1;transform:none}
+.kicker{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.kicker:before{content:"";width:22px;height:3px;border-radius:3px;background:var(--grad)}
+.titulo{font-size:clamp(28px,3.6vw,44px);line-height:1.1;font-weight:800;letter-spacing:-.5px;margin:10px 0 12px}
+.bajada{color:var(--muted);max-width:640px;font-size:16.5px}
+.degrade{background:var(--grad);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:fluye 6s linear infinite}
+@keyframes fluye{to{background-position:200% 0}}
+.btn{border:0;border-radius:12px;padding:13px 20px;font-weight:700;font-size:15px;display:inline-flex;align-items:center;gap:9px;text-decoration:none;transition:transform .2s,box-shadow .2s,background .2s}
+.btn:hover{transform:translateY(-2px)}
+.btn-luz{background:#fff;color:#0b1222;box-shadow:0 10px 30px rgba(255,255,255,.12)}
+.btn-borde{background:rgba(255,255,255,.04);border:1px solid var(--borde2);color:#fff}
+.btn-wa{background:var(--wa);color:#04281a;box-shadow:0 10px 30px rgba(37,211,102,.25)}
+.btn-az{background:var(--az);color:#fff;box-shadow:0 10px 30px rgba(91,132,255,.3)}
+.card{position:relative;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));border:1px solid var(--borde);border-radius:20px;overflow:hidden;transition:border-color .3s,transform .3s}
+.card:after{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(420px circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.08),transparent 45%);opacity:0;transition:opacity .3s}
+.card:hover{border-color:var(--borde2)}
+.card:hover:after{opacity:1}
+.seccion{padding:110px 0 0}
+
+/* ---------- cabecera ---------- */
+.cabecera{position:sticky;top:0;z-index:50;background:rgba(6,10,20,.62);backdrop-filter:blur(16px);border-bottom:1px solid var(--borde)}
+.cabecera .ancho{display:flex;align-items:center;gap:16px;height:90px}
+.cabecera .marca img{width:68px;height:68px}
+.cabecera .marca b{font-size:18px}
+.cabecera .marca small{font-size:13px}
+.marca{display:flex;align-items:center;gap:11px;text-decoration:none}
+.marca img{width:42px;height:42px;object-fit:contain;transition:transform .6s}
+.marca:hover img{transform:rotate(90deg)}
+.marca b{display:block;font-size:15.5px;line-height:1.15}
+.marca small{color:var(--muted);font-size:12px}
+.menu{margin-left:auto;display:flex;gap:2px}
+.menu a{text-decoration:none;color:var(--muted);padding:9px 12px;border-radius:10px;font-size:14px;font-weight:600;transition:.2s}
+.menu a:hover{color:#fff;background:rgba(255,255,255,.06)}
+.cabecera .btn{padding:10px 16px;font-size:14px}
+.franja{height:3px;background:var(--grad);background-size:200% 100%;animation:fluye 8s linear infinite}
+
+/* ---------- portada ---------- */
+.hero{padding:70px 0 40px;position:relative}
+.hero .ancho{display:grid;grid-template-columns:1.1fr .9fr;gap:56px;align-items:center}
+.hero h1{font-size:clamp(42px,6vw,78px);line-height:1;font-weight:800;letter-spacing:-2px;margin:18px 0 20px}
+.hero h1 .l{display:block;overflow:hidden;padding-bottom:6px}
+.hero h1 .l span{display:inline-block;transform:translateY(110%);animation:palabra .9s cubic-bezier(.2,.9,.2,1) forwards;animation-delay:calc(1.3s + var(--d) * 120ms)}
+@keyframes palabra{to{transform:none}}
+.hero p.bajada{font-size:18px;animation:sube .8s 1.75s both}
+.hero .botones{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px;animation:sube .8s 1.9s both}
+.sello30{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.05);border:1px solid var(--borde2);border-radius:999px;padding:6px 14px 6px 6px;font-size:13px;font-weight:700;animation:sube .8s 1.2s both}
+.sello30 b{background:var(--grad);color:#0b1222;border-radius:999px;padding:3px 10px;font-size:12.5px}
+.retrato-caja{position:relative;justify-self:center;width:min(100%,440px);animation:aparece 1.1s 1.4s cubic-bezier(.2,.9,.2,1) both}
+@keyframes aparece{from{opacity:0;transform:scale(.92) rotate(-3deg)}to{opacity:1;transform:none}}
+.anillo{padding:4px;border-radius:34px;background:conic-gradient(from var(--ang),var(--am),var(--ve),var(--az),var(--ro),var(--am));animation:rota 7s linear infinite}
+@keyframes rota{to{--ang:360deg}}
+.retrato{border-radius:30px;overflow:hidden;aspect-ratio:4/5;background:var(--sup)}
+.retrato img{width:100%;height:100%;object-fit:cover;object-position:50% 20%;transform:scale(1.04);transition:transform 1.2s}
+.retrato-caja:hover .retrato img{transform:scale(1.1)}
+.retrato-pie{position:absolute;left:18px;right:18px;bottom:18px;background:rgba(6,10,20,.72);backdrop-filter:blur(10px);border:1px solid var(--borde2);border-radius:16px;padding:12px 16px}
+.retrato-pie b{display:block;font-size:17px}
+.retrato-pie small{color:var(--muted)}
+.chip{position:absolute;background:rgba(14,22,41,.85);backdrop-filter:blur(10px);border:1px solid var(--borde2);border-radius:14px;padding:10px 14px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;box-shadow:0 14px 34px rgba(0,0,0,.45);animation:flota 6s ease-in-out infinite}
+.chip .punto{width:9px;height:9px;border-radius:50%;background:var(--wa);box-shadow:0 0 0 0 rgba(37,211,102,.6);animation:late 1.8s infinite}
+@keyframes flota{50%{transform:translateY(-12px)}}
+@keyframes late{70%{box-shadow:0 0 0 10px rgba(37,211,102,0)}100%{box-shadow:0 0 0 0 rgba(37,211,102,0)}}
+.chip.c1{top:34px;left:-46px}
+.chip.c2{top:44%;right:-40px;animation-delay:-2s}
+.chip.c3{bottom:110px;left:-56px;animation-delay:-4s}
+
+/* cinta de temas */
+.marquesina{margin-top:70px;border-top:1px solid var(--borde);border-bottom:1px solid var(--borde);overflow:hidden;padding:16px 0;mask-image:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent)}
+.marquesina .pista{display:flex;gap:44px;width:max-content;animation:desliza 38s linear infinite}
+.marquesina span{font-size:19px;font-weight:700;color:var(--muted);white-space:nowrap;display:flex;align-items:center;gap:10px}
+@keyframes desliza{to{transform:translateX(-50%)}}
+
+/* números */
+.numeros{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:60px}
+.numero{padding:24px}
+.numero b{display:block;font-size:46px;font-weight:800;line-height:1;letter-spacing:-1px}
+.numero span{color:var(--muted);font-size:14px}
+.numero i{position:absolute;top:0;left:0;right:0;height:3px;background:var(--c)}
+
+/* defensor */
+.defensor{display:grid;grid-template-columns:.95fr 1.05fr;gap:50px;align-items:center}
+.foto-doble{position:relative;padding-bottom:70px}
+.foto-doble .grande{border-radius:26px;overflow:hidden;aspect-ratio:4/5;max-height:560px}
+.foto-doble .grande img{width:100%;height:100%;object-fit:cover;object-position:50% 30%}
+.foto-doble .chica{position:absolute;right:-24px;bottom:0;width:52%;border-radius:20px;overflow:hidden;border:5px solid var(--bg);box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.foto-doble .chica img{aspect-ratio:16/11;object-fit:cover;width:100%}
+.foto-doble .etq{position:absolute;left:16px;top:16px;background:rgba(6,10,20,.75);backdrop-filter:blur(8px);border:1px solid var(--borde2);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:700}
+.cita{position:relative;font-size:clamp(20px,2.2vw,27px);line-height:1.35;font-weight:600;margin:22px 0 18px;padding-left:28px;border-left:3px solid;border-image:var(--grad) 1}
+.cita small{display:block;font-size:14px;color:var(--muted);font-weight:500;margin-top:10px}
+.datos-def{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px}
+.datos-def .card{padding:16px 18px}
+.datos-def b{display:block;font-size:15px}
+.datos-def span{color:var(--muted);font-size:13.5px}
+
+/* equipo */
+.equipo{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:34px}
+.persona{padding:22px 18px;text-align:center}
+.avatar{width:108px;height:108px;margin:0 auto 16px;border-radius:50%;padding:4px;background:conic-gradient(from var(--ang),var(--c1),var(--c2),var(--c1));animation:rota 9s linear infinite;transition:transform .4s}
+.persona:hover .avatar{transform:scale(1.07)}
+.avatar span{width:100%;height:100%;border-radius:50%;background:var(--sup2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:30px}
+.avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover;object-position:50% 20%;border:3px solid var(--bg)}
+.persona b{display:block;font-size:15px;line-height:1.3}
+.persona small{color:var(--muted);font-size:12.8px;display:block;margin-top:4px}
+
+/* historias: pasarela que avanza sola */
+.pasarela{margin-top:30px;overflow:hidden;padding:18px 0 30px;mask-image:linear-gradient(90deg,transparent,#000 6%,#000 94%,transparent)}
+.pista-h{display:flex;width:max-content;animation:deslizaH var(--dur,100s) linear infinite}
+.pasarela:hover .pista-h,.pasarela.pausa .pista-h{animation-play-state:paused}
+@keyframes deslizaH{to{transform:translateX(-50%)}}
+.historia{flex:0 0 330px;margin-right:18px;display:flex;flex-direction:column;cursor:zoom-in;transition:transform .45s cubic-bezier(.2,.9,.2,1),box-shadow .45s,border-color .3s}
+.historia:hover{transform:translateY(-8px) scale(1.04);box-shadow:0 26px 60px rgba(0,0,0,.55);border-color:var(--borde2);z-index:2}
+.historia .img{height:200px;overflow:hidden;position:relative}
+.historia .img img{width:100%;height:100%;object-fit:cover;transition:transform .9s}
+.historia:hover .img img{transform:scale(1.08)}
+.historia .img em{position:absolute;right:12px;bottom:12px;font-style:normal;font-size:12px;font-weight:700;background:rgba(6,10,20,.78);backdrop-filter:blur(8px);border-radius:999px;padding:5px 11px;opacity:0;transform:translateY(6px);transition:.3s}
+.historia:hover .img em{opacity:1;transform:none}
+.historia .cuerpo{padding:16px 20px 20px;flex:1;display:flex;flex-direction:column;gap:8px}
+.tag{align-self:flex-start;font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:1px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.07);color:var(--c)}
+.historia b{font-size:17px;line-height:1.3}
+.historia p{color:var(--muted);font-size:14px}
+.historia .res{margin-top:auto;font-size:13.5px;color:#c9f2bd;display:flex;gap:8px}
+.ayuda-pasarela{display:flex;gap:18px;flex-wrap:wrap;align-items:center;color:var(--dim);font-size:13.5px;margin-top:4px}
+.ayuda-pasarela b{color:var(--txt)}
+/* historia ampliada */
+.modal-h{position:fixed;inset:0;z-index:94;background:rgba(2,6,15,.78);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;visibility:hidden;transition:.35s}
+.modal-h.ver{opacity:1;visibility:visible}
+.modal-caja{position:relative;width:min(1000px,100%);max-height:90vh;display:grid;grid-template-columns:1.05fr 1fr;background:#0c1427;border:1px solid var(--borde2);border-radius:24px;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.6);transform:scale(.94) translateY(16px);transition:transform .45s cubic-bezier(.2,.9,.2,1)}
+.modal-h.ver .modal-caja{transform:none}
+.mh-img{background:#000;min-height:340px}
+.mh-img img{width:100%;height:100%;object-fit:cover;animation:aparece .5s}
+.mh-cuerpo{padding:30px 30px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.mh-cuerpo h3{font-size:26px;line-height:1.2;font-weight:800}
+.mh-cuerpo small{color:var(--dim);font-weight:700}
+.mh-cuerpo p{color:#cfd7ea;font-size:15px}
+.mh-res{border-radius:14px;padding:12px 14px;background:rgba(95,194,74,.1);border:1px solid rgba(95,194,74,.35);color:#c9f2bd;font-size:14.5px}
+.mh-pie{margin-top:auto;padding-top:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mh-pie button{width:42px;height:42px;border-radius:12px;border:1px solid var(--borde2);background:rgba(255,255,255,.04);font-size:17px}
+.mh-pie span{color:var(--muted);font-size:13px}
+.mh-pie a{margin-left:auto;text-decoration:none;font-weight:700;font-size:14px;color:#9db4ff}
+.modal-caja .cerrar{position:absolute;top:14px;right:14px;z-index:2;margin:0;background:rgba(6,10,20,.75)}
+
+/* noticias */
+.noticias{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px}
+.noticia{display:flex;flex-direction:column;text-decoration:none}
+.noticia .img{aspect-ratio:16/10;overflow:hidden;position:relative}
+.noticia .img img{width:100%;height:100%;object-fit:cover;transition:transform .8s}
+.noticia:hover .img img{transform:scale(1.07)}
+.noticia .img span{position:absolute;top:12px;left:12px;background:rgba(6,10,20,.75);backdrop-filter:blur(8px);border-radius:999px;padding:4px 11px;font-size:11.5px;font-weight:700}
+.noticia .cuerpo{padding:16px 18px 20px}
+.noticia small{color:var(--dim);font-weight:700;font-size:12.5px}
+.noticia b{display:block;font-size:16.5px;line-height:1.3;margin:6px 0}
+.noticia p{color:var(--muted);font-size:13.8px}
+.noticia.destacada{grid-column:span 2;grid-row:span 2}
+.noticia.destacada .img{aspect-ratio:auto;flex:1;min-height:320px}
+.noticia.destacada b{font-size:24px}
+.mas{display:flex;justify-content:center;margin-top:24px}
+
+/* medios */
+.medios{margin-top:30px;display:flex;flex-direction:column;gap:10px}
+.medio{display:grid;grid-template-columns:150px 120px 1fr 40px;gap:18px;align-items:center;padding:18px 22px;text-decoration:none}
+.medio .m{font-weight:800;font-size:14px;display:flex;align-items:center;gap:8px}
+.medio .m i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.medio small{color:var(--dim);font-weight:700}
+.medio b{font-size:16px;line-height:1.35}
+.medio .flecha{font-size:20px;color:var(--muted);transition:transform .3s}
+.medio:hover .flecha{transform:translate(4px,-4px);color:#fff}
+
+/* galería */
+.galeria{columns:4 240px;column-gap:14px;margin-top:34px}
+.galeria figure{break-inside:avoid;margin-bottom:14px;border-radius:16px;overflow:hidden;position:relative;cursor:zoom-in}
+.galeria img{width:100%;transition:transform .8s,filter .5s;filter:saturate(.9)}
+.galeria figure:hover img{transform:scale(1.06);filter:saturate(1.1)}
+.galeria figcaption{position:absolute;inset:auto 0 0 0;padding:30px 14px 12px;background:linear-gradient(transparent,rgba(0,0,0,.85));font-size:13px;font-weight:600;transform:translateY(100%);transition:transform .4s}
+.galeria figure:hover figcaption{transform:none}
+.visor{position:fixed;inset:0;z-index:95;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;padding:30px;flex-direction:column;gap:14px;cursor:zoom-out}
+.visor.ver{display:flex;animation:vistaIn .35s}
+.visor img{max-height:82vh;border-radius:14px}
+.visor p{color:var(--muted);max-width:700px;text-align:center}
+
+/* barrio */
+.barrio{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+.collage{position:relative;height:460px}
+.collage .f{position:absolute;border-radius:20px;overflow:hidden;border:5px solid var(--bg);box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.collage .f img{width:100%;height:100%;object-fit:cover}
+.collage .f1{width:72%;height:68%;top:0;left:0;transform:rotate(-2deg)}
+.collage .f2{width:58%;height:56%;bottom:0;right:0;transform:rotate(3deg)}
+.agenda{display:flex;flex-direction:column;gap:10px;margin-top:22px}
+.operativo{display:flex;gap:14px;align-items:center;padding:14px 16px}
+.operativo .fecha{width:58px;height:62px;border-radius:14px;background:linear-gradient(160deg,var(--az),#3354c4);display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none;line-height:1.05}
+.operativo .fecha b{font-size:22px}
+.operativo .fecha small{font-size:11px;text-transform:uppercase;font-weight:700}
+.operativo span{color:var(--muted);font-size:13.5px}
+
+/* reclamo (asistente por pasos) */
+.reclamo-caja{margin-top:34px;padding:0}
+.pasos-barra{display:flex;border-bottom:1px solid var(--borde)}
+.pasos-barra div{flex:1;padding:16px 18px;font-size:13.5px;font-weight:700;color:var(--dim);display:flex;align-items:center;gap:10px;position:relative;transition:color .3s}
+.pasos-barra div span{width:26px;height:26px;border-radius:50%;border:2px solid var(--borde2);display:flex;align-items:center;justify-content:center;font-size:12.5px;transition:.3s;flex:none}
+.pasos-barra div.on{color:#fff}
+.pasos-barra div.on span{background:#fff;color:#0b1222;border-color:#fff}
+.pasos-barra div.hecho span{background:var(--ve);border-color:var(--ve);color:#06210a}
+.progreso{height:3px;background:var(--borde)}
+.progreso i{display:block;height:100%;width:25%;background:var(--grad);transition:width .6s cubic-bezier(.2,.9,.2,1)}
+.carril{overflow:hidden}
+.pasos{display:flex;transition:transform .6s cubic-bezier(.2,.9,.2,1)}
+.paso{flex:0 0 100%;padding:30px 32px 32px}
+.paso h3{font-size:22px;margin-bottom:4px}
+.paso .ayuda{color:var(--muted);margin-bottom:20px}
+.temas{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.tema{padding:18px;text-align:left;border-radius:16px;background:rgba(255,255,255,.03);border:1px solid var(--borde);transition:.25s;position:relative}
+.tema:hover{transform:translateY(-3px);border-color:var(--borde2)}
+.tema.sel{border-color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent);box-shadow:0 0 0 1px var(--c),0 14px 34px color-mix(in srgb,var(--c) 22%,transparent)}
+.tema .ic{font-size:28px;display:block;margin-bottom:8px}
+.tema b{display:block;font-size:15px}
+.tema small{color:var(--muted);font-size:12.8px}
+.campo{display:flex;flex-direction:column;gap:6px}
+.campo label{font-size:13.5px;font-weight:700;color:#cfd7ea}
+.campo input,.campo select,.campo textarea{background:rgba(255,255,255,.04);border:1px solid var(--borde2);border-radius:12px;padding:12px 14px;outline:none;transition:border-color .2s,box-shadow .2s}
+.campo select option{background:var(--sup)}
+.campo input:focus,.campo select:focus,.campo textarea:focus{border-color:var(--az);box-shadow:0 0 0 4px rgba(91,132,255,.18)}
+.campo textarea{min-height:120px;resize:vertical}
+.rejilla{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.rejilla .todo{grid-column:1/-1}
+@keyframes late-r{0%{box-shadow:0 0 0 0 rgba(255,74,92,.6)}70%{box-shadow:0 0 0 14px rgba(255,74,92,0)}100%{box-shadow:0 0 0 0 rgba(255,74,92,0)}}
+.fotos-prev{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.fotos-prev img{width:76px;height:76px;object-fit:cover;border-radius:12px;border:1px solid var(--borde2);animation:aparece .4s}
+.subir{display:flex;align-items:center;justify-content:center;gap:10px;border:1px dashed var(--borde2);border-radius:14px;padding:16px;color:var(--muted);cursor:pointer;transition:.2s}
+.subir:hover{border-color:var(--az);color:#fff}
+.subir input{display:none}
+.acciones-paso{display:flex;justify-content:space-between;gap:10px;margin-top:26px}
+.check{display:flex;gap:10px;align-items:flex-start;color:var(--muted);font-size:14px}
+.check input{margin-top:4px;accent-color:var(--wa)}
+.exito{display:none;text-align:center;padding:46px 24px 40px}
+.exito.ver{display:block;animation:vistaIn .6s}
+.tilde{width:88px;height:88px;margin:0 auto 18px;border-radius:50%;background:rgba(95,194,74,.15);display:flex;align-items:center;justify-content:center}
+.tilde svg{width:46px;height:46px}
+.tilde path{stroke:var(--ve);stroke-width:4;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:60;stroke-dashoffset:60;animation:traza .7s .2s forwards}
+@keyframes traza{to{stroke-dashoffset:0}}
+.nro{display:inline-block;font-size:clamp(28px,4vw,40px);font-weight:800;letter-spacing:2px;padding:12px 26px;border-radius:16px;margin:14px 0 8px;background:rgba(255,255,255,.05);border:1px solid var(--borde2)}
+
+/* seguimiento */
+.seguir{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
+.seguir input{flex:1;min-width:220px;background:rgba(255,255,255,.04);border:1px solid var(--borde2);border-radius:12px;padding:13px 16px;text-transform:uppercase;letter-spacing:1px;outline:none}
+.seguir input:focus{border-color:var(--az)}
+.lt{margin-top:26px;display:none;padding:24px}
+.lt.ver{display:block;animation:vistaIn .5s}
+.lt-cab{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:22px}
+.lt-pasos{display:grid;grid-template-columns:repeat(4,1fr);position:relative}
+.lt-pasos:before{content:"";position:absolute;top:17px;left:12%;right:12%;height:3px;background:var(--borde2);border-radius:3px}
+.lt-linea{position:absolute;top:17px;left:12%;height:3px;border-radius:3px;background:var(--grad);width:0;transition:width 1.2s cubic-bezier(.2,.9,.2,1)}
+.lt-paso{text-align:center;position:relative;z-index:1;padding:0 8px}
+.lt-paso .pt{width:37px;height:37px;margin:0 auto 10px;border-radius:50%;background:var(--sup2);border:2px solid var(--borde2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;transition:.4s}
+.lt-paso.hecho .pt{background:var(--ve);border-color:var(--ve);color:#06210a}
+.lt-paso.actual .pt{background:var(--am);border-color:var(--am);color:#3a3000;box-shadow:0 0 0 6px rgba(247,207,29,.15)}
+.lt-paso b{display:block;font-size:14.5px}
+.lt-paso small{color:var(--muted);font-size:12.5px;display:block;margin-top:3px}
+
+/* pie */
+.cta-final{margin-top:110px;padding:56px;text-align:center;background:radial-gradient(circle at 20% 0%,rgba(91,132,255,.22),transparent 55%),radial-gradient(circle at 80% 100%,rgba(255,74,92,.18),transparent 55%),var(--sup)}
+.cta-final h2{font-size:clamp(28px,4vw,46px);font-weight:800;letter-spacing:-1px;margin-bottom:10px}
+.pie{margin-top:60px;border-top:1px solid var(--borde);padding:34px 0 20px}
+.pie .ancho{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:24px;font-size:14px;color:var(--muted)}
+.pie b{color:#fff;display:block;margin-bottom:6px}
+.credito{text-align:center;color:var(--dim);font-size:12.5px;margin-top:26px}
+
+/* ---------- WhatsApp ---------- */
+.wa-escena{display:grid;grid-template-columns:1fr 400px;gap:56px;align-items:center;padding-top:50px}
+.wa-pasos{display:flex;flex-direction:column;gap:10px;margin-top:26px}
+.wa-paso{display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border-radius:16px;border:1px solid var(--borde);background:rgba(255,255,255,.02);opacity:.45;transition:.4s}
+.wa-paso.on{opacity:1;border-color:rgba(37,211,102,.5);background:rgba(37,211,102,.07);transform:translateX(6px)}
+.wa-paso .n{width:30px;height:30px;border-radius:9px;background:var(--sup2);display:flex;align-items:center;justify-content:center;font-weight:800;flex:none}
+.wa-paso.on .n{background:var(--wa);color:#04281a}
+.wa-paso b{display:block}
+.wa-paso small{color:var(--muted)}
+.telefono{width:380px;height:760px;margin:0 auto;border-radius:52px;padding:12px;background:linear-gradient(160deg,#2a3245,#0d1220);box-shadow:0 40px 90px rgba(0,0,0,.6),inset 0 0 0 2px rgba(255,255,255,.08);position:relative}
+.telefono:before{content:"";position:absolute;top:22px;left:50%;transform:translateX(-50%);width:110px;height:28px;border-radius:20px;background:#000;z-index:3}
+.pantalla{width:100%;height:100%;border-radius:42px;overflow:hidden;display:flex;flex-direction:column;background:#0b141a}
+.wa-top{background:#202c33;padding:56px 14px 12px;display:flex;align-items:center;gap:10px}
+.wa-top img{width:38px;height:38px;border-radius:50%;background:#fff;padding:3px;object-fit:contain}
+.wa-top b{display:block;font-size:15px;color:#e9edef}
+.wa-top small{color:#8696a0;font-size:12px}
+.wa-chat{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:6px;background:#0b141a radial-gradient(rgba(255,255,255,.025) 1px,transparent 1px) 0 0/18px 18px;scroll-behavior:smooth}
+.msj{max-width:84%;padding:7px 10px 6px;border-radius:12px;font-size:14px;color:#e9edef;animation:pop .35s cubic-bezier(.2,.9,.2,1)}
+@keyframes pop{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+.msj.vecino{align-self:flex-end;background:#005c4b;border-top-right-radius:3px}
+.msj.bot{align-self:flex-start;background:#202c33;border-top-left-radius:3px}
+.msj .hora{display:block;text-align:right;font-size:10.5px;color:#8fa3ad;margin-top:2px}
+.msj .hora em{color:#53bdeb;font-style:normal}
+.msj .aud{display:flex;align-items:center;gap:10px;min-width:210px}
+.msj .aud .play{width:32px;height:32px;border-radius:50%;background:#e9edef;color:#005c4b;display:flex;align-items:center;justify-content:center;font-size:12px}
+.msj .aud .barras{display:flex;gap:2px;align-items:center;height:26px;flex:1}
+.msj .aud .barras i{width:3px;border-radius:3px;background:#9fd8c8;height:var(--h);animation:onda2 1s ease-in-out infinite;animation-delay:calc(var(--k) * -60ms)}
+@keyframes onda2{50%{transform:scaleY(.45)}}
+.msj .trans{font-size:12.5px;color:#b7d9cf;font-style:italic;margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.12)}
+.msj .ubic{border-radius:8px;overflow:hidden;margin-bottom:4px;height:110px;background:linear-gradient(135deg,#1f3a35,#2a4f47);display:flex;align-items:center;justify-content:center;font-size:30px}
+.msj .foto{border-radius:8px;overflow:hidden;margin-bottom:4px;width:210px;height:140px}
+.msj .foto img{width:100%;height:100%;object-fit:cover}
+.msj.ia{background:#1b2b3a;border:1px solid rgba(91,132,255,.35)}
+.msj.ia .etq{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:1px;color:#9db4ff;margin-bottom:3px}
+.dia{align-self:center;background:#182229;color:#8696a0;font-size:12px;padding:5px 12px;border-radius:8px;margin:8px 0}
+.escribe{align-self:flex-start;background:#202c33;border-radius:12px;padding:12px 14px;display:flex;gap:4px}
+.escribe i{width:7px;height:7px;border-radius:50%;background:#8696a0;animation:salta 1.2s infinite}
+.escribe i:nth-child(2){animation-delay:.15s}.escribe i:nth-child(3){animation-delay:.3s}
+@keyframes salta{30%{transform:translateY(-5px);opacity:1}0%,60%,100%{opacity:.5}}
+.wa-abajo{background:#202c33;padding:10px 12px 22px;display:flex;gap:8px;align-items:center}
+.wa-abajo div{flex:1;background:#2a3942;border-radius:22px;padding:10px 16px;color:#8696a0;font-size:14px}
+.wa-abajo span{width:42px;height:42px;border-radius:50%;background:#00a884;display:flex;align-items:center;justify-content:center;font-size:18px}
+
+/* ---------- Panel ---------- */
+.panel{display:grid;grid-template-columns:250px 1fr;min-height:calc(100vh - 28px)}
+.lateral{border-right:1px solid var(--borde);background:rgba(10,17,33,.7);backdrop-filter:blur(14px);padding:20px 14px;position:sticky;top:0;height:100vh}
+.lateral .marca{margin-bottom:26px;padding:0 6px}
+.lateral nav a{display:flex;align-items:center;gap:11px;color:var(--muted);text-decoration:none;padding:11px 12px;border-radius:12px;font-size:14.5px;font-weight:600;margin-bottom:3px;transition:.2s}
+.lateral nav a:hover{color:#fff;background:rgba(255,255,255,.05)}
+.lateral nav a.activo{color:#fff;background:rgba(91,132,255,.16);box-shadow:inset 3px 0 0 var(--az)}
+.lateral nav a em{margin-left:auto;font-style:normal;font-size:12px;background:var(--ro);color:#fff;border-radius:999px;padding:1px 8px}
+.lateral .usuario{position:absolute;bottom:20px;left:14px;right:14px;display:flex;gap:10px;align-items:center;padding:12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--borde);font-size:13px}
+.lateral .usuario span{width:36px;height:36px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;font-weight:800;color:#0b1222;flex:none}
+.contenido{padding:26px 28px;min-width:0}
+.cont-cab{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:22px}
+.cont-cab h1{font-size:26px;font-weight:800}
+.cont-cab p{color:var(--muted);font-size:14px}
+.cont-cab .der{margin-left:auto;display:flex;gap:10px;align-items:center}
+.buscador{background:rgba(255,255,255,.04);border:1px solid var(--borde2);border-radius:12px;padding:10px 14px;min-width:260px;outline:none}
+.campana{position:relative;width:42px;height:42px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid var(--borde2);display:flex;align-items:center;justify-content:center}
+.campana i{position:absolute;top:8px;right:9px;width:9px;height:9px;border-radius:50%;background:var(--ro);animation:late-r 1.6s infinite}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+.kpi{padding:18px 20px}
+.kpi small{color:var(--muted);font-size:13px;font-weight:600}
+.kpi b{display:block;font-size:34px;font-weight:800;line-height:1.15;letter-spacing:-.5px}
+.kpi .var{font-size:12.5px;font-weight:700;color:var(--ve)}
+.kpi:before{content:"";position:absolute;left:0;top:18px;bottom:18px;width:3px;border-radius:3px;background:var(--c)}
+.dos-col{display:grid;grid-template-columns:1.55fr 1fr;gap:16px}
+.filtros{display:flex;gap:8px;flex-wrap:wrap;padding:14px;border-bottom:1px solid var(--borde)}
+.filtros select{background:rgba(255,255,255,.04);border:1px solid var(--borde2);border-radius:10px;padding:8px 10px;outline:none}
+.filtros select option{background:var(--sup)}
+.tabla{overflow:auto;max-height:560px}
+table{width:100%;border-collapse:collapse;font-size:13.8px;min-width:680px}
+th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:1px;color:var(--dim);padding:12px 14px;position:sticky;top:0;background:#0f182d;z-index:1}
+td{padding:12px 14px;border-top:1px solid var(--borde)}
+tr.fila{cursor:pointer;animation:filaIn .5s cubic-bezier(.2,.9,.2,1) both;animation-delay:calc(var(--k) * 45ms)}
+@keyframes filaIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+tr.fila:hover td{background:rgba(255,255,255,.035)}
+tr.fila.nuevo td{background:rgba(247,207,29,.07)}
+.nuevo-tag{font-size:10.5px;font-weight:800;background:var(--am);color:#3a3000;border-radius:6px;padding:1px 6px;margin-left:6px}
+.estado{display:inline-flex;align-items:center;gap:6px;padding:4px 11px;border-radius:999px;font-size:12.5px;font-weight:700;white-space:nowrap}
+.estado:before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.e0{background:rgba(91,132,255,.15);color:#9db4ff}.e1{background:rgba(192,132,252,.15);color:#d8b4fe}.e2{background:rgba(247,207,29,.14);color:#fde68a}.e3{background:rgba(95,194,74,.15);color:#a7e89a}
+.canal{color:var(--muted);font-size:13px;white-space:nowrap}
+.mapa-caja{display:flex;flex-direction:column}
+.mapa-caja .cab{padding:14px 16px;border-bottom:1px solid var(--borde);display:flex;justify-content:space-between;align-items:center}
+#mapa{height:330px;background:#0b1222;position:relative;z-index:0;isolation:isolate}
+.mapa-falla{height:330px;display:flex;align-items:center;justify-content:center;color:var(--muted);text-align:center;padding:20px}
+.leaflet-container{background:#0b1222;font-family:inherit}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--sup2);color:var(--txt)}
+.pulso{border-radius:50%;box-shadow:0 0 0 0 currentColor;animation:pulsoM 2s infinite}
+@keyframes pulsoM{0%{box-shadow:0 0 0 0 rgba(255,255,255,.45)}70%{box-shadow:0 0 0 14px rgba(255,255,255,0)}100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}}
+.mini-temas{padding:16px}
+.mini{display:grid;grid-template-columns:22px 1fr 30px;gap:8px;align-items:center;font-size:13px;margin-bottom:8px}
+.mini .riel{height:7px;border-radius:7px;background:rgba(255,255,255,.06);overflow:hidden}
+.mini .riel i{display:block;height:100%;border-radius:7px;background:var(--c);width:0;transition:width 1s cubic-bezier(.2,.9,.2,1)}
+.cajon{position:fixed;top:0;right:0;width:480px;max-width:100vw;height:100vh;background:#0c1427;border-left:1px solid var(--borde2);box-shadow:-30px 0 80px rgba(0,0,0,.55);z-index:70;transform:translateX(105%);transition:transform .45s cubic-bezier(.2,.9,.2,1);display:flex;flex-direction:column}
+.cajon.abierto{transform:none}
+.cajon .cab{padding:20px 22px;border-bottom:1px solid var(--borde);display:flex;gap:12px;align-items:flex-start}
+.cajon .cab b{font-size:21px;display:block;letter-spacing:.5px}
+.cerrar{margin-left:auto;width:38px;height:38px;border-radius:11px;border:1px solid var(--borde2);background:rgba(255,255,255,.04);font-size:18px}
+.cajon .cuerpo{padding:20px 22px 30px;overflow-y:auto;flex:1}
+.dato{display:grid;grid-template-columns:96px 1fr;gap:8px;font-size:14px;padding:6px 0}
+.dato span{color:var(--muted)}
+.dato select{background:rgba(255,255,255,.04);border:1px solid var(--borde2);border-radius:9px;padding:6px 8px;width:100%}
+.dato select option{background:var(--sup)}
+.cuerpo h4{margin:20px 0 9px;font-size:11.5px;text-transform:uppercase;letter-spacing:1.4px;color:var(--dim)}
+.relato{background:rgba(255,255,255,.03);border:1px solid var(--borde);border-radius:12px;padding:12px 14px;font-size:14px}
+.ia-caja{border-radius:14px;padding:14px 16px;background:linear-gradient(135deg,rgba(91,132,255,.16),rgba(95,194,74,.08));border:1px solid rgba(91,132,255,.35);font-size:14px}
+.ia-caja .t{font-size:12px;font-weight:800;letter-spacing:1.2px;color:#b6c7ff;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.ia-caja .t:after{content:"";width:8px;height:8px;border-radius:50%;background:var(--ve);animation:late 1.8s infinite}
+.ia-caja ul{margin:6px 0 0 18px;color:#d5def0}
+.ia-caja .sug{margin-top:10px;font-style:italic;color:#e6ecff;min-height:42px}
+.acciones{display:flex;gap:8px;flex-wrap:wrap}
+.acciones button{border:1px solid var(--borde2);background:rgba(255,255,255,.04);border-radius:10px;padding:8px 12px;font-size:13.5px;font-weight:700;transition:.2s}
+.acciones button:hover{border-color:#fff}
+.acciones button.activo{background:#fff;color:#0b1222;border-color:#fff}
+.cuerpo textarea{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--borde2);border-radius:12px;padding:11px;min-height:80px;outline:none}
+.historial{border-left:2px solid var(--borde2);margin-left:6px;padding-left:16px}
+.historial div{font-size:13.5px;padding:7px 0;position:relative}
+.historial div:before{content:"";position:absolute;left:-22px;top:13px;width:10px;height:10px;border-radius:50%;background:var(--az);border:2px solid #0c1427}
+.historial small{color:var(--muted);display:block}
+.velo{position:fixed;inset:0;background:rgba(2,6,15,.55);backdrop-filter:blur(3px);z-index:65;opacity:0;visibility:hidden;transition:.35s}
+.velo.ver{opacity:1;visibility:visible}
+
+/* ---------- Tablero ---------- */
+.tab-cab{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;padding-top:46px}
+.ejemplo{font-size:11.5px;font-weight:800;letter-spacing:1px;background:rgba(247,207,29,.15);color:#fde68a;border-radius:999px;padding:4px 11px;vertical-align:middle;margin-left:10px}
+.graficos{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;margin-top:16px}
+.grafico{padding:22px}
+.grafico h3{font-size:16px;margin-bottom:16px;display:flex;justify-content:space-between}
+.grafico h3 small{color:var(--muted);font-weight:600;font-size:13px}
+.barra{display:grid;grid-template-columns:200px 1fr 54px;gap:12px;align-items:center;font-size:13.8px;margin-bottom:11px}
+.barra .riel{height:12px;border-radius:12px;background:rgba(255,255,255,.06);overflow:hidden}
+.barra .riel i{display:block;height:100%;border-radius:12px;background:var(--c,var(--az));width:0;transition:width 1.3s cubic-bezier(.2,.9,.2,1);transition-delay:calc(var(--k) * 70ms)}
+.barra b{text-align:right}
+.linea-svg{width:100%;height:220px}
+.linea-svg .area{fill:url(#gradArea);opacity:0;transition:opacity 1s .8s}
+.linea-svg .trazo{fill:none;stroke:url(#gradLinea);stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round}
+.linea-svg .pto{fill:#0b1222;stroke:#fff;stroke-width:2;opacity:0;transition:opacity .4s}
+.linea-svg text{fill:var(--dim);font-size:12px;font-family:inherit}
+.anim .linea-svg .area,.anim .linea-svg .pto{opacity:1}
+.dona-caja{display:flex;gap:26px;align-items:center;flex-wrap:wrap}
+.dona{width:190px;height:190px;border-radius:50%;background:conic-gradient(var(--wa) 0 44%,var(--az) 0 75%,var(--am) 0 92%,var(--ro) 0 100%);-webkit-mask:radial-gradient(circle,transparent 56%,#000 57%);mask:radial-gradient(circle,transparent 56%,#000 57%);transform:rotate(-200deg) scale(.6);opacity:0;transition:transform 1.3s cubic-bezier(.2,.9,.2,1),opacity 1s}
+.anim .dona{transform:none;opacity:1}
+.dona-centro{position:relative;width:190px;height:190px;flex:none}
+.dona-centro .centro{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.dona-centro b{font-size:30px;font-weight:800}
+.dona-centro small{color:var(--muted);font-size:12px}
+.leyenda{display:flex;flex-direction:column;gap:10px;font-size:14px}
+.leyenda span{display:flex;align-items:center;gap:10px}
+.leyenda span:before{content:"";width:12px;height:12px;border-radius:4px;background:var(--c)}
+.leyenda b{margin-left:auto;padding-left:16px}
+.informe{margin-top:16px;padding:26px 28px;display:flex;gap:24px;align-items:center;flex-wrap:wrap;background:radial-gradient(circle at 0% 0%,rgba(255,74,92,.18),transparent 50%),linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015))}
+.informe .grande{font-size:58px;font-weight:800;line-height:1;letter-spacing:-2px}
+.informe p{color:var(--muted);max-width:560px}
+
+@media (max-width:1000px){
+  .hero .ancho,.defensor,.barrio,.wa-escena,.graficos,.dos-col{grid-template-columns:1fr}
+  .numeros,.kpis{grid-template-columns:1fr 1fr}
+  .equipo{grid-template-columns:repeat(3,1fr)}
+  .noticias{grid-template-columns:1fr 1fr}
+  .temas{grid-template-columns:repeat(2,1fr)}
+  .menu{display:none}
+  .chip.c1{left:-8px}.chip.c2{right:-8px}.chip.c3{left:-8px}
+  .panel{grid-template-columns:1fr}.lateral{display:none}
+  .medio{grid-template-columns:1fr 30px;gap:6px}
+  .medio .m,.medio small{grid-column:1}
+  .pie .ancho{grid-template-columns:1fr 1fr}
+  .telefono{width:340px;height:700px}
+  .foto-doble .chica{right:0}
+  .modal-caja{grid-template-columns:1fr}
+  .mh-img{min-height:220px;max-height:260px}
+  .historia{flex-basis:285px}
+}
+#v-sitio{overflow-x:clip}
+@media (max-width:620px){
+  .numeros,.equipo,.noticias,.rejilla,.datos-def{grid-template-columns:1fr}
+  .kpis{grid-template-columns:1fr 1fr;gap:10px}
+  .kpi{padding:14px}
+  .kpi b{font-size:26px}
+  .cabecera .ancho{height:74px}
+  .cabecera .btn{display:none}
+  .cabecera .marca img{width:56px;height:56px}
+  .cabecera .marca b{font-size:16px;white-space:nowrap}
+  .cabecera .marca small{font-size:12px;white-space:nowrap}
+  .noticia.destacada{grid-column:auto;grid-row:auto}
+  .pasos-barra div{font-size:0;justify-content:center}
+  .paso{padding:22px 18px}
+  .barra{grid-template-columns:120px 1fr 44px}
+  .collage{height:340px}
+  .demo-nav button{padding:9px 10px;font-size:12.5px}
+  .cta-final{padding:36px 20px}
+  .lt-pasos b{font-size:12.5px}
+}
+</style>
+</head>
+<body>
+<div class="aurora"><i></i><i></i><i></i><i></i></div>
+<div class="grano"></div>
+
+<div id="pre"><img src="logo.png" alt=""><b>Defensoría <span class="degrade">Digital</span></b><div class="carga"><i></i></div></div>
+
+<div class="cinta">MAQUETA DE PROPUESTA · Fotos y noticias reales de defensoriasgo.gob.ar · Los reclamos y estadísticas son de ejemplo · Desarrollo: José Alejandro Díaz</div>
+
+<nav class="demo-nav">
+  <button data-vista="sitio" class="activo">🏠 Sitio</button>
+  <button data-vista="whatsapp">💬 WhatsApp</button>
+  <button data-vista="panel">🗂 Panel</button>
+  <button data-vista="tablero">📊 Tablero</button>
+</nav>
+<div class="toast" id="toast"></div>
+<div class="visor" id="visor"><img alt=""><p></p></div>
+<div class="modal-h" id="modal-h">
+  <div class="modal-caja">
+    <button class="cerrar" id="mh-cerrar">✕</button>
+    <div class="mh-img"><img id="mh-img" alt=""></div>
+    <div class="mh-cuerpo">
+      <span class="tag" id="mh-tag"></span>
+      <small id="mh-fecha"></small>
+      <h3 id="mh-titulo"></h3>
+      <div id="mh-texto"></div>
+      <div class="mh-res" id="mh-res"></div>
+      <div class="mh-pie"><button id="mh-ant" title="Anterior">←</button><span id="mh-cont"></span><button id="mh-sig" title="Siguiente">→</button><a id="mh-link" target="_blank" rel="noopener">Leer la nota completa ↗</a></div>
+    </div>
+  </div>
+</div>
+<canvas id="confeti" style="position:fixed;inset:0;pointer-events:none;z-index:96"></canvas>
+
+<!-- ====================================================== SITIO ====================================================== -->
+<section class="vista activa" id="v-sitio">
+  <header class="cabecera">
+    <div class="ancho">
+      <a class="marca" href="#inicio"><img src="logo.png" alt=""><div><b>Defensoría del Pueblo</b><small>Ciudad de Santiago del Estero</small></div></a>
+      <nav class="menu">
+        <a href="#defensor">El Defensor</a>
+        <a href="#historias">Resultados</a>
+        <a href="#noticias">Noticias</a>
+        <a href="#barrio">En tu barrio</a>
+        <a href="#seguimiento">Seguí tu caso</a>
+      </nav>
+      <a class="btn btn-luz" href="#reclamo">Hacé tu reclamo</a>
+    </div>
+    <div class="franja"></div>
+  </header>
+
+  <div class="hero" id="inicio">
+    <div class="ancho">
+      <div>
+        <span class="sello30"><b>30 años</b> defendiendo a los vecinos de la Capital</span>
+        <h1>
+          <span class="l"><span style="--d:0">Tus</span> <span style="--d:1">derechos,</span></span>
+          <span class="l"><span style="--d:2" class="degrade">nuestro deber.</span></span>
+        </h1>
+        <p class="bajada">Contá tu problema desde el celular, por la web o por WhatsApp, y seguí tu caso hasta que se resuelva. Sin filas, sin papeles, sin volver a la oficina.</p>
+        <div class="botones">
+          <a class="btn btn-luz" href="#reclamo">📝 Hacé tu reclamo</a>
+          <button class="btn btn-wa" data-ir="whatsapp">💬 Escribinos por WhatsApp</button>
+          <a class="btn btn-borde" href="#seguimiento">🔎 Seguí tu caso</a>
+        </div>
+      </div>
+      <div class="retrato-caja">
+        <div class="anillo"><div class="retrato"><img src="img/n13.jpg" alt="Lic. Luis Ger"></div></div>
+        <div class="retrato-pie"><b>Lic. Luis Ger</b><small>Defensor del Pueblo de la Ciudad · reelecto en 2024</small></div>
+        <div class="chip c1"><span class="punto"></span>Atención online las 24 h</div>
+        <div class="chip c2">🔔 Te avisamos cada novedad</div>
+        <div class="chip c3">📍 Avellaneda 522</div>
+      </div>
+    </div>
+    <div class="marquesina"><div class="pista" id="marquesina"></div></div>
+    <div class="ancho">
+      <div class="numeros">
+        <div class="card numero rev" style="--i:0;--c:var(--am)"><i></i><b data-cuenta="30">0</b><span>años de la institución (1996–2026)</span></div>
+        <div class="card numero rev" style="--i:1;--c:var(--ve)"><i></i><b data-cuenta="15">0</b><span>organizaciones sociales trabajando en red</span></div>
+        <div class="card numero rev" style="--i:2;--c:var(--az)"><i></i><b data-cuenta="40">0</b><span>noticias de gestión publicadas</span></div>
+        <div class="card numero rev" style="--i:3;--c:var(--ro)"><i></i><b data-cuenta="365">0</b><span>días al año: "no tenemos feria"</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- El Defensor -->
+  <div class="seccion" id="defensor">
+    <div class="ancho defensor">
+      <div class="foto-doble rev">
+        <div class="grande"><img src="img/n21.jpg" alt="Luis Ger en su despacho"></div>
+        <span class="etq">En su despacho de la Defensoría</span>
+        <div class="chica"><img src="img/n16.jpg" alt="Sesión de reelección"></div>
+      </div>
+      <div>
+        <span class="kicker rev">El Defensor del Pueblo</span>
+        <h2 class="titulo rev" style="--i:1">Lic. Luis Ger</h2>
+        <p class="bajada rev" style="--i:2">Elegido por el Concejo Deliberante de la ciudad y reelecto en 2024 para un nuevo período. Integra la Asociación de Defensores del Pueblo de la República Argentina (ADPRA).</p>
+        <blockquote class="cita rev" style="--i:3">“Es un nuevo desafío para todos nosotros, en el cual renovamos la promesa de esforzarnos en la defensa de los derechos de los ciudadanos de nuestra ciudad.”<small>— Luis Ger, al ser reelecto (agosto de 2024)</small></blockquote>
+        <div class="datos-def">
+          <div class="card rev" style="--i:4"><b>🏛 Reelecto en 2024</b><span>Sesión especial del Concejo Deliberante</span></div>
+          <div class="card rev" style="--i:5"><b>🤝 Gabinete de Mediación</b><span>Conflictos entre vecinos, consorcios y empresas</span></div>
+          <div class="card rev" style="--i:6"><b>⛺ La Defensoría en tu barrio</b><span>Operativos en los barrios de la Capital</span></div>
+          <div class="card rev" style="--i:7"><b>🇦🇷 ADPRA</b><span>Plenarios nacionales de defensores</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="ancho">
+      <div class="equipo" id="equipo"></div>
+    </div>
+  </div>
+
+  <!-- Historias -->
+  <div class="seccion" id="historias">
+    <div class="ancho">
+      <span class="kicker rev">Resultados concretos</span>
+      <h2 class="titulo rev" style="--i:1">Reclamos que se transformaron en <span class="degrade">soluciones</span></h2>
+      <p class="bajada rev" style="--i:2">Casos reales gestionados por la Defensoría, tomados de sus propias noticias. Con el sistema, cada historia así queda registrada, medida y visible.</p>
+      <div class="ayuda-pasarela rev" style="--i:3"><span id="cuenta-logros"></span><span>🖱 Pasá el mouse para <b>detenerla</b></span><span>🔍 Tocá una tarjeta para <b>ampliarla</b></span></div>
+    </div>
+    <div class="pasarela rev" style="--i:3" id="pasarela"><div class="pista-h" id="lista-historias"></div></div>
+  </div>
+
+  <!-- Noticias -->
+  <div class="seccion" id="noticias">
+    <div class="ancho">
+      <span class="kicker rev">Noticias</span>
+      <h2 class="titulo rev" style="--i:1">La Defensoría, día a día</h2>
+      <div class="noticias" id="lista-noticias"></div>
+      <div class="mas"><button class="btn btn-borde" id="mas-noticias">Ver más noticias</button></div>
+    </div>
+  </div>
+
+  <!-- Medios -->
+  <div class="seccion" id="medios">
+    <div class="ancho">
+      <span class="kicker rev">En los medios</span>
+      <h2 class="titulo rev" style="--i:1">Lo que se dice de la Defensoría</h2>
+      <div class="medios" id="lista-medios"></div>
+    </div>
+  </div>
+
+  <!-- Galería -->
+  <div class="seccion">
+    <div class="ancho">
+      <span class="kicker rev">Galería</span>
+      <h2 class="titulo rev" style="--i:1">La Defensoría en acción</h2>
+      <div class="galeria" id="galeria"></div>
+    </div>
+  </div>
+
+  <!-- En tu barrio -->
+  <div class="seccion" id="barrio">
+    <div class="ancho barrio">
+      <div>
+        <span class="kicker rev">La Defensoría en tu barrio</span>
+        <h2 class="titulo rev" style="--i:1">Vamos a donde estás.<br><span class="degrade">Y te seguimos después.</span></h2>
+        <blockquote class="cita rev" style="--i:2">“Aun así nos resultó insuficiente el tiempo y las visitas a los barrios para atender la demanda de los vecinos.”<small>— Luis Ger, sobre los operativos de segmentación energética (2024)</small></blockquote>
+        <p class="bajada rev" style="--i:3">Con la Defensoría Digital, lo que se toma en el gazebo entra al mismo sistema, y el vecino sigue su caso desde el celular entre un operativo y el siguiente.</p>
+        <div class="agenda">
+          <div class="card operativo rev" style="--i:4"><div class="fecha"><b>14</b><small>nov</small></div><div><b>Barrio Ejército Argentino</b><br><span>Plaza del barrio · 9 a 13 h</span></div></div>
+          <div class="card operativo rev" style="--i:5"><div class="fecha"><b>21</b><small>nov</small></div><div><b>Barrio Mariano Moreno</b><br><span>Centro vecinal · 9 a 13 h</span></div></div>
+          <div class="card operativo rev" style="--i:6"><div class="fecha"><b>28</b><small>nov</small></div><div><b>Barrio Autonomía</b><br><span>Frente a la parroquia · 9 a 13 h · agenda de ejemplo</span></div></div>
+        </div>
+      </div>
+      <div class="collage rev" style="--i:2">
+        <div class="f f1"><img src="img/n14.jpg" alt=""></div>
+        <div class="f f2"><img src="img/n17.jpg" alt=""></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reclamo -->
+  <div class="seccion" id="reclamo">
+    <div class="ancho">
+      <span class="kicker rev">Hacé tu reclamo</span>
+      <h2 class="titulo rev" style="--i:1">Contanos qué pasa. <span class="degrade">En dos minutos.</span></h2>
+      <div class="card reclamo-caja rev" style="--i:2">
+        <div id="asistente">
+          <div class="pasos-barra" id="pasos-barra">
+            <div class="on"><span>1</span>Tema</div><div><span>2</span>Contanos</div><div><span>3</span>Dónde</div><div><span>4</span>Tus datos</div>
+          </div>
+          <div class="progreso"><i id="progreso"></i></div>
+          <div class="carril"><div class="pasos" id="pasos">
+            <div class="paso">
+              <h3>¿Sobre qué es tu reclamo?</h3><p class="ayuda">Si no sabés cuál elegir, tocá “Otro tema” y nosotros lo derivamos.</p>
+              <div class="temas" id="temas"></div>
+            </div>
+            <div class="paso">
+              <h3>Contanos qué pasa</h3><p class="ayuda">Contalo con tus palabras. Si tenés fotos o documentos, sumalos.</p>
+              <div class="rejilla">
+                <div class="campo todo"><label>Tu relato</label><textarea id="f-detalle" placeholder="Ej.: Hace una semana que no pasa el recolector por mi cuadra y la basura se acumula en la esquina."></textarea></div>
+                <label class="subir todo"><input type="file" id="f-foto" accept="image/*" multiple>📷 Sumá fotos o documentos</label>
+                <div class="fotos-prev todo" id="fotos-prev"></div>
+              </div>
+            </div>
+            <div class="paso">
+              <h3>¿Dónde pasa?</h3><p class="ayuda">Así sabemos a quién reclamar y cuántos vecinos tienen el mismo problema.</p>
+              <div class="rejilla">
+                <div class="campo"><label>Barrio</label><select id="f-barrio"></select></div>
+                <div class="campo"><label>Calle y altura (o referencia)</label><input id="f-dir" placeholder="Ej.: Calle 203 y Pasaje 12"></div>
+                <button type="button" class="btn btn-borde todo" id="ubicar" style="justify-content:center">📍 Usar mi ubicación actual</button>
+              </div>
+            </div>
+            <div class="paso">
+              <h3>Tus datos</h3><p class="ayuda">Solo los ve la Defensoría. Te avisamos cada novedad por WhatsApp.</p>
+              <div class="rejilla">
+                <div class="campo"><label>Nombre y apellido</label><input id="f-nombre" placeholder="Ej.: Ana Gómez"></div>
+                <div class="campo"><label>DNI</label><input id="f-dni" inputmode="numeric" placeholder="Ej.: 30111222"></div>
+                <div class="campo"><label>WhatsApp</label><input id="f-wa" inputmode="tel" placeholder="Ej.: 385 4123456"></div>
+                <div class="campo"><label>Correo (opcional)</label><input id="f-mail" placeholder="nombre@correo.com"></div>
+                <label class="check todo"><input type="checkbox" checked> Quiero recibir los avisos de mi reclamo por WhatsApp</label>
+              </div>
+            </div>
+          </div></div>
+          <div class="acciones-paso" style="padding:0 32px 30px">
+            <button class="btn btn-borde" id="atras" style="visibility:hidden">← Atrás</button>
+            <button class="btn btn-az" id="seguir-paso">Seguir →</button>
+          </div>
+        </div>
+        <div class="exito" id="exito">
+          <div class="tilde"><svg viewBox="0 0 50 50"><path d="M13 26 l8 8 l16 -18"/></svg></div>
+          <h3 style="font-size:26px">¡Recibimos tu reclamo!</h3>
+          <p style="color:var(--muted)">Este es tu número. También te lo mandamos por WhatsApp.</p>
+          <div class="nro" id="nro">DPC-2026-0000</div>
+          <p style="color:var(--dim);font-size:14px">Con este número podés seguir tu caso cuando quieras.</p>
+          <p style="color:#fde68a;font-size:12.5px;margin-top:8px">Demostración: en esta maqueta los datos no se envían a la Defensoría.</p>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:22px">
+            <button class="btn btn-luz" id="ver-mio">🔎 Seguir mi reclamo</button>
+            <button class="btn btn-borde" data-ir="panel">Ver cómo le llega a la Defensoría →</button>
+            <button class="btn btn-borde" id="otro">Hacer otro</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Seguimiento -->
+  <div class="seccion" id="seguimiento">
+    <div class="ancho">
+      <span class="kicker rev">Seguí tu caso</span>
+      <h2 class="titulo rev" style="--i:1">¿En qué está mi reclamo?</h2>
+      <p class="bajada rev" style="--i:2">Ingresá tu número. Probá con <a href="#" id="ejemplo-num" style="color:#fff">DPC-2026-0461</a>.</p>
+      <div class="seguir rev" style="--i:3"><input id="s-num" placeholder="DPC-2026-0000"><button class="btn btn-az" id="s-buscar">Buscar</button></div>
+      <div class="card lt" id="lt"></div>
+    </div>
+  </div>
+
+  <div class="ancho">
+    <div class="card cta-final rev">
+      <span class="kicker">Defensoría del Pueblo de la Ciudad</span>
+      <h2 style="margin-top:12px">¿Sentís que se vulneró un derecho?<br><span class="degrade">Contalo. Te acompañamos.</span></h2>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:26px">
+        <a class="btn btn-luz" href="#reclamo">📝 Hacé tu reclamo</a>
+        <button class="btn btn-wa" data-ir="whatsapp">💬 WhatsApp</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="pie">
+    <div class="ancho">
+      <div><a class="marca" href="#inicio"><img src="logo.png" alt=""><div><b style="margin:0">Defensoría del Pueblo</b><small>Ciudad de Santiago del Estero</small></div></a><p style="margin-top:12px">Tus derechos, nuestro deber.</p></div>
+      <div><b>Dirección</b>Avellaneda 522<br>Santiago del Estero</div>
+      <div><b>Teléfonos</b>(0385) 422-9821<br>(0385) 422-9829</div>
+      <div><b>Correo</b>defensoriaciudadsgo@hotmail.com</div>
+    </div>
+    <p class="credito">Maqueta de “Defensoría Digital” · Propuesta de José Alejandro Díaz · Desarrollo de sistemas · Santiago del Estero</p>
+  </footer>
+</section>
+
+<!-- ====================================================== WHATSAPP ====================================================== -->
+<section class="vista" id="v-whatsapp">
+  <div class="ancho wa-escena">
+    <div>
+      <span class="kicker">Asistente con inteligencia artificial</span>
+      <h2 class="titulo">El vecino escribe como habla.<br><span class="degrade">La IA hace el resto.</span></h2>
+      <p class="bajada">El WhatsApp oficial de la Defensoría atiende las 24 horas, los 365 días. No hace falta saber a qué área ir ni completar formularios.</p>
+      <div class="wa-pasos" id="wa-pasos">
+        <div class="wa-paso"><span class="n">1</span><div><b>Entiende el mensaje</b><small>Comprende el problema contado con las palabras del vecino.</small></div></div>
+        <div class="wa-paso"><span class="n">2</span><div><b>Clasifica solo</b><small>Detecta el tema y el barrio, y pide lo que falta: ubicación, foto.</small></div></div>
+        <div class="wa-paso"><span class="n">3</span><div><b>Registra y da el número</b><small>El reclamo entra al panel sin que nadie cargue nada a mano.</small></div></div>
+        <div class="wa-paso"><span class="n">4</span><div><b>Avisa cada novedad</b><small>Cuando el equipo actualiza el caso, el vecino se entera al instante.</small></div></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:26px">
+        <button class="btn btn-wa" id="wa-play">▶ Reproducir conversación</button>
+        <button class="btn btn-borde" id="wa-reset">↺ Empezar de nuevo</button>
+        <button class="btn btn-borde" data-ir="panel">Ver en el panel →</button>
+      </div>
+    </div>
+    <div class="telefono">
+      <div class="pantalla">
+        <div class="wa-top"><img src="logo.png" alt=""><div><b>Defensoría del Pueblo ✔</b><small id="wa-estado">Cuenta oficial · en línea</small></div></div>
+        <div class="wa-chat" id="wa-chat"></div>
+        <div class="wa-abajo"><div>Mensaje</div><span>➤</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================================================== PANEL ====================================================== -->
+<section class="vista" id="v-panel">
+  <div class="panel">
+    <aside class="lateral">
+      <a class="marca" href="#"><img src="logo.png" alt=""><div><b>Defensoría</b><small>Panel de gestión</small></div></a>
+      <nav>
+        <a class="activo" href="#">🗂 Reclamos <em id="badge-nuevos">0</em></a>
+        <a href="#">🤝 Mediación</a>
+        <a href="#">⛺ En tu barrio</a>
+        <a href="#">💬 WhatsApp</a>
+        <a href="#" data-ir="tablero">📊 Tablero</a>
+        <a href="#">⚙️ Configuración</a>
+      </nav>
+      <div class="usuario"><span>LL</span><div><b>Dra. Leisa Lescano</b><br><small style="color:var(--muted)">Secretaría General</small></div></div>
+    </aside>
+    <main class="contenido">
+      <div class="cont-cab">
+        <div><h1>Reclamos</h1><p>Web, WhatsApp, barrios y oficina, en una sola pantalla.</p></div>
+        <div class="der"><input class="buscador" id="p-buscar" placeholder="🔍 Buscar número, vecino o texto"><div class="campana">🔔<i></i></div></div>
+      </div>
+      <div class="kpis" id="kpis"></div>
+      <div class="dos-col">
+        <div class="card">
+          <div class="filtros">
+            <select id="p-estado"><option value="">Todos los estados</option></select>
+            <select id="p-tema"><option value="">Todos los temas</option></select>
+            <select id="p-canal"><option value="">Todos los canales</option><option>Web</option><option>WhatsApp</option><option>En tu barrio</option><option>Presencial</option></select>
+          </div>
+          <div class="tabla"><table><thead><tr><th>N.º</th><th>Vecino</th><th>Tema</th><th>Barrio</th><th>Canal</th><th>Estado</th></tr></thead><tbody id="p-filas"></tbody></table></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="card mapa-caja"><div class="cab"><b>Mapa de reclamos</b><small style="color:var(--muted)">Ciudad Capital</small></div><div id="mapa"></div></div>
+          <div class="card"><div class="mapa-caja"><div class="cab"><b>Abiertos por tema</b></div></div><div class="mini-temas" id="mini-temas"></div></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</section>
+<div class="velo" id="velo"></div>
+<aside class="cajon" id="cajon">
+  <div class="cab"><div><small style="color:var(--muted)">Reclamo</small><b id="c-num"></b><span id="c-estado"></span></div><button class="cerrar" id="c-cerrar">✕</button></div>
+  <div class="cuerpo" id="c-cuerpo"></div>
+</aside>
+
+<!-- ====================================================== TABLERO ====================================================== -->
+<section class="vista" id="v-tablero">
+  <div class="ancho" id="tablero">
+    <div class="tab-cab">
+      <div><span class="kicker">Tablero de gestión</span><h2 class="titulo" style="margin-bottom:0">2026 en números <span class="ejemplo">DATOS DE EJEMPLO</span></h2></div>
+    </div>
+    <p class="bajada" style="margin-top:8px">Se arma solo con lo que entra al sistema. Para decidir dónde poner el esfuerzo y para rendir cuentas.</p>
+    <div class="kpis" id="t-kpis" style="margin-top:20px"></div>
+    <div class="graficos">
+      <div class="card grafico"><h3>Reclamos por tema <small>2026</small></h3><div id="t-temas"></div></div>
+      <div class="card grafico"><h3>Barrios con más reclamos <small>top 7</small></h3><div id="t-barrios"></div></div>
+      <div class="card grafico"><h3>Evolución mensual <small>ene–nov</small></h3>
+        <svg class="linea-svg" viewBox="0 0 640 220" preserveAspectRatio="none" id="t-linea">
+          <defs>
+            <linearGradient id="gradLinea" x1="0" x2="1"><stop offset="0" stop-color="#f7cf1d"/><stop offset=".35" stop-color="#5fc24a"/><stop offset=".7" stop-color="#5b84ff"/><stop offset="1" stop-color="#ff4a5c"/></linearGradient>
+            <linearGradient id="gradArea" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#5b84ff" stop-opacity=".35"/><stop offset="1" stop-color="#5b84ff" stop-opacity="0"/></linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div class="card grafico"><h3>¿Por dónde llegan? <small>canales</small></h3>
+        <div class="dona-caja">
+          <div class="dona-centro"><div class="dona"></div><div class="centro"><b id="t-total-dona">0</b><small>reclamos</small></div></div>
+          <div class="leyenda" id="t-leyenda"></div>
+        </div>
+        <p style="color:var(--muted);font-size:14px;margin-top:18px">WhatsApp y la web le llegan a quien antes no se acercaba a la oficina.</p>
+      </div>
+    </div>
+    <div class="card informe">
+      <div class="grande degrade">2019</div>
+      <div style="flex:1;min-width:260px"><b style="font-size:18px">Es el último informe anual publicado en la web de la Defensoría.</b><p>Con el sistema, el informe de cada año se genera solo, con los números reales de la gestión, listo para presentar al Concejo Deliberante y publicar.</p></div>
+      <button class="btn btn-luz" id="t-informe">📄 Generar informe 2026</button>
+    </div>
+  </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="datos.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const esc = t => String(t ?? '').replace(/[&<>"]/g, m => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;'}[m]));
+function aviso(t) { const el = $('#toast'); el.textContent = t; el.classList.add('ver'); clearTimeout(aviso.t); aviso.t = setTimeout(() => el.classList.remove('ver'), 2800); }
+function hoy() { const d = new Date(); return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); }
+
+/* ================= datos ================= */
+const TEMAS = {
+  servicios:  {nombre:'Agua y luz',              desc:'Cortes, facturas, calidad',     icono:'💡', color:'#f7cf1d', area:'Secretaría General'},
+  limpieza:   {nombre:'Limpieza y residuos',     desc:'Recolección, basurales',        icono:'🧹', color:'#5fc24a', area:'Secretaría General'},
+  arboles:    {nombre:'Árboles y poda',          desc:'Caídos o con riesgo',           icono:'🌳', color:'#2fae73', area:'Secretaría General'},
+  transporte: {nombre:'Transporte público',      desc:'Frecuencias, tarifas, estado',  icono:'🚌', color:'#5b84ff', area:'Relaciones Institucionales'},
+  consumidor: {nombre:'Comercios y garantías',   desc:'Productos que no responden',    icono:'🛒', color:'#ff4a5c', area:'Secretaría General'},
+  vecinos:    {nombre:'Conflictos entre vecinos',desc:'Lo resolvemos con mediación',   icono:'🤝', color:'#a78bfa', area:'Gabinete de Mediación'},
+  energia:    {nombre:'Subsidios a la energía',  desc:'Te ayudamos a inscribirte',     icono:'⚡', color:'#ffb020', area:'Bienestar Social y Comunitario'},
+  otros:      {nombre:'Otro tema',               desc:'Contanos y lo derivamos',       icono:'📝', color:'#94a3b8', area:'Secretaría General'},
+};
+const ESTADOS = ['Recibido', 'En análisis', 'En gestión', 'Resuelto'];
+const BARRIOS = ['Centro', 'Autonomía', 'Mariano Moreno', 'Ejército Argentino', 'Siglo XXI', 'Huaico Hondo', 'Jorge Newbery', 'Belgrano', 'Juan Felipe Ibarra', 'Tradición', 'Otro barrio'];
+const AREAS = ['Secretaría General', 'Gabinete de Mediación', 'Bienestar Social y Comunitario', 'Relaciones Institucionales', 'Administrativa y Contable'];
+const IA = {
+  servicios:  ['Prioridad alta: servicio esencial', 'Pedir informe a la prestataria y a ENRESE', 'Hola, recibimos su reclamo. Ya pedimos a la empresa un informe sobre el servicio en su cuadra y le avisamos apenas tengamos respuesta.'],
+  limpieza:   ['Prioridad media', 'Nota a Servicios Públicos de la Municipalidad', 'Hola, ya enviamos su reclamo al área municipal de recolección. Le avisamos cuando confirmen la fecha de limpieza.'],
+  arboles:    ['Prioridad alta: riesgo en la vía pública', 'Pedido urgente al área municipal de espacios verdes', 'Hola, por el riesgo que implica, pedimos con urgencia el retiro del árbol. Le avisamos cuando tengamos fecha.'],
+  transporte: ['Prioridad media · 6 reclamos similares este mes', 'Unificar con reclamos de la misma línea', 'Hola, su reclamo se suma a otros de la misma línea. Vamos a presentar un pedido conjunto a la empresa.'],
+  consumidor: ['Prioridad media', 'Intimar al comercio por la garantía', 'Hola, vamos a contactar al comercio para que responda por la garantía. Guarde la factura y la fecha de compra.'],
+  vecinos:    ['Derivar a mediación', 'Citar a las partes a una audiencia', 'Hola, le proponemos una mediación gratuita con su vecino en la Defensoría. ¿Qué días le quedan cómodos?'],
+  energia:    ['Trámite asistido', 'Turno con Bienestar Social', 'Hola, le damos un turno para ayudarle a completar la inscripción a los subsidios. Traiga DNI y una factura.'],
+  otros:      ['Revisar y derivar', 'Asignar a Secretaría General', 'Hola, recibimos su consulta. Un integrante del equipo se va a comunicar con usted.'],
+};
+let casos = [
+  ['0461','03/11','María Ledesma','arboles','Autonomía','WhatsApp',2,'Árbol caído sobre la vereda; no se puede pasar con el cochecito.'],
+  ['0462','03/11','Carlos Juárez','limpieza','Mariano Moreno','En tu barrio',3,'Basural en el terreno baldío de la esquina, hace un mes.'],
+  ['0463','04/11','Rosa Paz','servicios','Siglo XXI','Web',1,'Factura de luz con un aumento que no corresponde al consumo.'],
+  ['0464','04/11','Jorge Paz','transporte','Huaico Hondo','WhatsApp',2,'La línea pasa cada 50 minutos a la mañana; los chicos llegan tarde a la escuela.'],
+  ['0465','05/11','Lucía Coronel','consumidor','Centro','Presencial',1,'Heladera con dos meses de uso; el comercio no responde por la garantía.'],
+  ['0466','05/11','Ramón Suárez','vecinos','Belgrano','Web',2,'Ruidos fuertes todas las noches en la casa de al lado.'],
+  ['0467','06/11','Elena Ibáñez','energia','Ejército Argentino','En tu barrio',3,'Necesita ayuda para inscribirse en la segmentación de subsidios.'],
+  ['0468','06/11','Héctor Díaz','servicios','Jorge Newbery','WhatsApp',0,'Tres días sin agua en toda la cuadra.'],
+  ['0469','07/11','Silvia Rojas','limpieza','Autonomía','WhatsApp',0,'No pasa el recolector desde el lunes.'],
+  ['0470','07/11','Pablo Herrera','arboles','Centro','Web',1,'Ramas sobre los cables de luz frente a la escuela.'],
+  ['0471','08/11','Norma Ávila','transporte','Siglo XXI','Presencial',0,'La parada no tiene techo ni iluminación.'],
+  ['0472','08/11','Diego Salvatierra','otros','Tradición','WhatsApp',0,'Pide orientación por un trámite de pensión.'],
+  ['0473','09/11','Graciela Luna','servicios','Juan Felipe Ibarra','WhatsApp',2,'Baja tensión en todo el barrio desde hace dos semanas.'],
+  ['0474','09/11','Marcos Acosta','vecinos','Huaico Hondo','En tu barrio',1,'Conflicto por una medianera compartida.'],
+].map(([n, fecha, vecino, tema, barrio, canal, estado, detalle], i) => {
+  const c = {n:'DPC-2026-' + n, fecha, vecino, tema, barrio, canal, estado, detalle, area:TEMAS[tema].area};
+  c.historial = historialInicial(c);
+  c.lat = -27.795 + Math.sin(i * 12.9898) * 0.022; c.lng = -64.262 + Math.cos(i * 78.233) * 0.03;
+  return c;
+});
+let proximo = 482;
+function historialInicial(c) {
+  const h = [{e:0, cuando:c.fecha + ' 09:12', texto:'Reclamo recibido por ' + c.canal + '.'}];
+  if (c.estado >= 1) h.push({e:1, cuando:c.fecha + ' 11:40', texto:'Lo toma ' + c.area + '.'});
+  if (c.estado >= 2) h.push({e:2, cuando:'2 días después', texto:'La Defensoría envió nota al organismo responsable.'});
+  if (c.estado >= 3) h.push({e:3, cuando:'5 días después', texto:'Solucionado. Se avisó al vecino por WhatsApp.'});
+  return h;
+}
+const nuevoNumero = () => 'DPC-2026-' + String(proximo++).padStart(4, '0');
+const chip = e => '<span class="estado e' + e + '">' + ESTADOS[e] + '</span>';
+
+/* ================= navegación ================= */
+let vistaActual = 'sitio';
+function irA(v) {
+  if (v === vistaActual) return;
+  const cambiar = () => {
+    $$('.vista').forEach(x => x.classList.toggle('activa', x.id === 'v-' + v));
+    $$('.demo-nav button').forEach(b => b.classList.toggle('activo', b.dataset.vista === v));
+    vistaActual = v; window.scrollTo({top:0, behavior:'instant'});
+    if (v === 'panel') pintarPanel(true);
+    if (v === 'tablero') pintarTablero();
+    observar();
+  };
+  document.startViewTransition ? document.startViewTransition(cambiar) : cambiar();
+}
+$$('.demo-nav button').forEach(b => b.onclick = () => irA(b.dataset.vista));
+document.addEventListener('click', e => { const b = e.target.closest('[data-ir]'); if (b) { e.preventDefault(); irA(b.dataset.ir); } });
+
+/* luz que sigue al mouse en las tarjetas */
+document.addEventListener('pointermove', e => {
+  const c = e.target.closest && e.target.closest('.card'); if (!c) return;
+  const r = c.getBoundingClientRect(); c.style.setProperty('--mx', (e.clientX - r.left) + 'px'); c.style.setProperty('--my', (e.clientY - r.top) + 'px');
+});
+
+/* aparición al hacer scroll + contadores */
+const obs = new IntersectionObserver(ents => ents.forEach(en => {
+  if (!en.isIntersecting) return;
+  en.target.classList.add('vis'); obs.unobserve(en.target);
+  en.target.querySelectorAll('[data-cuenta]').forEach(contar);
+}), {threshold:.14});
+function observar() { $$('.vista.activa .rev:not(.vis)').forEach(el => obs.observe(el)); }
+function contar(el) {
+  const fin = +el.dataset.cuenta, t0 = performance.now(), dur = 1600;
+  const paso = t => { const p = Math.min(1, (t - t0) / dur), v = Math.round(fin * (1 - Math.pow(1 - p, 3))); el.textContent = v.toLocaleString('es-AR'); if (p < 1) requestAnimationFrame(paso); };
+  requestAnimationFrame(paso);
+}
+
+/* ================= sitio ================= */
+// marquesina
+$('#marquesina').innerHTML = (Object.values(TEMAS).map(t => '<span>' + t.icono + ' ' + t.nombre + '</span>').join('') + '<span>⛺ La Defensoría en tu barrio</span><span>⚖️ Mediación comunitaria</span>').repeat(2);
+
+// equipo (datos de la página "Autoridades" del sitio oficial)
+const EQUIPO = [
+  ['Lic. Luis Ger', 'Defensor del Pueblo', 'img/aut-ger.jpg', '#f7cf1d', '#5b84ff'],
+  ['Dra. Leisa Inés Lescano', 'Secretaría General · Mediación', 'img/aut-lescano.jpg', '#5fc24a', '#5b84ff'],
+  ['CPN Luis Humberto Astun', 'Secretaría Administrativa y Contable', 'img/aut-astun.jpg', '#5b84ff', '#ff4a5c'],
+  ['Adrián Díaz', 'Relaciones Institucionales y Políticas Internas', 'img/aut-diaz.jpg', '#ff4a5c', '#f7cf1d'],
+  ['Roberto Ger', 'Bienestar Social y Comunitario', 'RG', '#f7cf1d', '#5fc24a'],
+];
+$('#equipo').innerHTML = EQUIPO.map(([n, r, f, c1, c2], i) => '<div class="card persona rev" style="--i:' + i + '"><div class="avatar" style="--c1:' + c1 + ';--c2:' + c2 + '">' +
+  (f.startsWith('img/') ? '<img src="' + f + '" alt="">' : '<span>' + f + '</span>') + '</div><b>' + n + '</b><small>' + r + '</small></div>').join('');
+
+// logros reales, resumidos de las noticias del sitio oficial (id = noticia de datos.js)
+const VERDE = '#5fc24a', VIOLETA = '#a78bfa', NARANJA = '#ffb020', AZUL = '#5b84ff', ROJO = '#ff4a5c', AMARILLO = '#f7cf1d';
+const HISTORIAS = [
+  {id:33, tag:'En tu barrio', c:VERDE, titulo:'Plaza del Docente, B° COESA-Borges',
+   antes:'Bancos y juegos rotos, sin limpieza ni iluminación.', res:'Se reparó la plaza y mejoró la iluminación de todo el sector.',
+   detalle:['En una reunión del programa La Defensoría en tu barrio, los vecinos contaron que la plaza del Docente (calles 114, 115, 11 y 12) estaba totalmente desmantelada: bancos y juegos rotos, sin mantenimiento, limpieza ni iluminación.', 'La Defensoría hizo un relevamiento con fotografías y gestionó ante la Secretaría de Planeamiento, Obras y Servicios Públicos de la Municipalidad.', 'El 31 de octubre de 2023 los propios vecinos enviaron fotos del inicio de los trabajos de remodelación.']},
+  {id:26, tag:'Mediación', c:VIOLETA, titulo:'Huaico Hondo: acuerdo con la empresa de cloacas',
+   antes:'Conflicto entre vecinos de calle 203 y la constructora de la red cloacal.', res:'Acuerdo conciliatorio, satisfactorio para ambas partes.',
+   detalle:['A principios de 2023, vecinos de calle 203 del barrio Huaico Hondo pidieron una mediación comunitaria por un conflicto con la empresa privada que construía la red cloacal de la zona.', 'El gabinete de mediación, encabezado por la Secretaria General Dra. Leisa Lescano, tomó contacto con las partes en el lugar y llevó adelante audiencias privadas durante el año.', 'El proceso terminó con un acuerdo conciliatorio firmado por vecinos y empresa.']},
+  {id:23, tag:'Mediación', c:VIOLETA, titulo:'Normalización del consorcio Centenario',
+   antes:'Sin autoridades ni seguro, portero roto, escaleras sin barandas.', res:'Mediación y asamblea para normalizar el consorcio.',
+   detalle:['Propietarios de los departamentos de Avda. Belgrano (S) al 1700 pidieron una mediación comunitaria para normalizar el consorcio Centenario.', 'Sin autoridades ni consejo de administración, no tenían seguro contra accidentes, el portero eléctrico no funcionaba, las escaleras no tenían barandas y los tanques de agua no se mantenían.', 'El equipo de mediación contactó a las partes, ordenó los puntos a tratar y organizó la asamblea.']},
+  {id:14, tag:'Energía', c:NARANJA, titulo:'Operativos de subsidios en 10 barrios',
+   antes:'Plazo muy corto para inscribirse a los subsidios de luz y gas.', res:'Entre 100 y 150 consultas por día en cada operativo.',
+   detalle:['Durante agosto de 2024 la Defensoría recorrió barrios de la Capital para reempadronar o iniciar el trámite del subsidio de luz y gas antes del vencimiento del 4 de septiembre.', 'Los operativos llegaron a los barrios Libertad, Almirante Brown, Reconquista, Tradición, América del Sur, Borges, René Favaloro, General Paz, Saint Germain y Siglo XXI.', 'Hubo un promedio de entre 100 y 150 consultas por día en cada operativo.']},
+  {id:13, tag:'Energía', c:NARANJA, titulo:'Pedido de prórroga a la Secretaría de Energía',
+   antes:'El plazo para inscribirse en el RASE no alcanzaba para la demanda.', res:'Pedido público de prórroga ante la Nación.',
+   detalle:['La Secretaría de Energía de la Nación emplazó a todos los usuarios a inscribirse en el Registro de Acceso a los Subsidios a la Energía (RASE) hasta el 4 de septiembre de 2024.', 'Como ese plazo resultó insuficiente para atender la demanda solo en la ciudad Capital, la Defensoría pidió públicamente que se prorrogue.']},
+  {id:15, tag:'Servicios', c:AMARILLO, titulo:'Trabajo conjunto con el ENRESE',
+   antes:'Dudas de los vecinos sobre la segmentación energética.', res:'Compromiso de trabajo conjunto y capacitación al equipo.',
+   detalle:['Luis Ger se reunió con el titular del ENRESE, Luis Cabanillas, y con la jefa de su Mesa de Entrada Virtual para analizar la segmentación energética.', 'Ambas instituciones se comprometieron a trabajar juntas para informar y responder las dudas sobre el RASE, y las autoridades del ENRESE atendieron las consultas del personal de la Defensoría.']},
+  {id:12, tag:'Consumidor', c:ROJO, titulo:'La garrafa, servicio público esencial',
+   antes:'La desregulación del gas envasado afecta a los hogares sin red.', res:'Adhesión al pedido nacional de las defensorías.',
+   detalle:['La Defensoría adhirió al reclamo de la Asociación de Defensorías del Pueblo de la República Argentina (ADPRA) para declarar la garrafa como servicio público esencial.', 'También pidió reconsiderar la Resolución 216/2024, que desregula el precio del gas licuado e impacta en los hogares de escasos recursos que dependen de él.']},
+  {id:38, tag:'Inclusión', c:AZUL, titulo:'Programa “Promover Inclusión”',
+   antes:'Jóvenes con discapacidad auditiva sin primera experiencia laboral.', res:'Dos jóvenes se sumaron al equipo, con intérpretes.',
+   detalle:['Con el programa “Promover Inclusión”, de la Secretaría de Bienestar Social y Comunitario, dos jóvenes con discapacidad auditiva se sumaron al trabajo diario de la Defensoría, en los turnos mañana y tarde.', 'Trabajan acompañados por una profesora y por el grupo de intérpretes “Somos Puente”.', 'Luis Ger les dio la bienvenida: “Este es un lugar para que ustedes puedan aprender a desenvolverse en oficinas del Estado”.']},
+  {id:17, tag:'Niñez', c:ROJO, titulo:'“Decile No al Bullying” en los barrios',
+   antes:'El bullying se previene en la escuela, poco en el barrio y la familia.', res:'Charlas en iglesias, merenderos y centros vecinales.',
+   detalle:['La Defensoría lleva la charla-taller “Decile No al Bullying” a instituciones barriales; una de ellas se hizo en la iglesia del Movimiento Cristiano y Misionero del barrio Mariano Moreno.', 'Las jornadas continúan en iglesias, merenderos y centros vecinales de la ciudad Capital.']},
+  {id:4, tag:'Mediación', c:VIOLETA, titulo:'Capacitó a la Defensoría de La Banda',
+   antes:'La Banda quería armar su propio gabinete de mediación.', res:'Capacitación y asesoramiento al personal bandeño.',
+   detalle:['La Secretaria General, Dra. Leisa Lescano, se reunió con la Defensora del Pueblo de La Banda, Dra. María Laura Acuña, para trabajar en conjunto.', 'Las mediadoras de la Defensoría capacitaron al personal de La Banda en mediación comunitaria y los asesoraron para implementar formalmente su gabinete.']},
+  {id:3, tag:'Institucional', c:AZUL, titulo:'Santiago, sede del plenario nacional de ADPRA',
+   antes:'Reunir en la ciudad a las defensorías de todo el país.', res:'Defensores de todo el país en el Fórum, con declaración de interés municipal.',
+   detalle:['El 3 y 4 de julio de 2025 se realizó en el Fórum Centro de Convenciones el II Plenario de ADPRA, con defensores provinciales y municipales de todo el país.', 'La bienvenida estuvo a cargo de Luis Ger, y la intendenta Norma Fuentes entregó la declaración de interés municipal del encuentro.']},
+  {id:8, tag:'Convenios', c:VERDE, titulo:'Convenio con la Facultad de Humanidades (UNSE)',
+   antes:'Sumar a la universidad para resolver problemas de la ciudadanía.', res:'Equipos de trabajo conjuntos con la UNSE.',
+   detalle:['La Defensoría impulsó y firmó un convenio de cooperación con la Facultad de Humanidades, Ciencias Sociales y de la Salud de la UNSE, rubricado por Luis Ger y el decano Lic. Marcelino Ledesma.', 'El acuerdo prevé equipos de ambas instituciones abocados a resolver problemas de la ciudadanía.']},
+  {id:34, tag:'En tu barrio', c:VERDE, titulo:'Jubilados del B° Juan Felipe Ibarra',
+   antes:'Falta de iluminación y minibasurales en el barrio.', res:'Trabajo articulado con el Centro de Jubilados General Mosconi.',
+   detalle:['En el marco de La Defensoría en tu barrio, el equipo se reunió con el Centro de Jubilados General Mosconi, de calle 189, en el barrio Juan Felipe Ibarra.', 'Los vecinos plantearon problemas como la falta de iluminación y los minibasurales, y se acordó articular esfuerzos para abordarlos.']},
+  {id:19, tag:'Mediación', c:VIOLETA, titulo:'Audiencia en el consorcio Mitre',
+   antes:'Sin administración ni rendición de cuentas, servicios impagos.', res:'Audiencia de mediación con propietarios e inquilinos.',
+   detalle:['A pedido de la junta directiva y de los propietarios del consorcio Mitre, el gabinete de Mediación Comunitaria convocó a una audiencia a propietarios e inquilinos con poder de representación.', 'El objetivo fue ordenar la falta de administración y de rendición de cuentas, la falta de pago de los servicios, los problemas edilicios y los incumplimientos contractuales.']},
+  {id:22, tag:'Derechos humanos', c:AMARILLO, titulo:'Mural por los 40 años de democracia',
+   antes:'Recordar los derechos conquistados en democracia.', res:'Mural institucional pintado por un integrante del equipo.',
+   detalle:['En las oficinas de la Defensoría se terminó el mural conmemorativo por los 40 años de democracia, obra del muralista David Ortiz, integrante del personal.', 'La obra refleja la conquista de los derechos humanos a lo largo de los años: manos que sostienen los derechos conquistados.']},
+  {id:36, tag:'Difusión', c:AZUL, titulo:'Stand en la Feria Provincial del Libro',
+   antes:'Acercar la Defensoría a chicos, jóvenes y adultos.', res:'Cinco días de atención y asesoramiento.',
+   detalle:['Durante los cinco días de la XIII Feria Provincial del Libro, el stand de la Defensoría recibió a adultos, adolescentes y alumnos de escuelas.', 'El equipo informó sobre los programas de la institución y las campañas de derechos humanos, educación vial y violencia de género.']},
+  {id:2, tag:'Convenios', c:VERDE, titulo:'Trabajo conjunto con la Escuela de Artes y Oficios',
+   antes:'Acercar capacitación en oficios a toda la comunidad.', res:'Compromiso de trabajo conjunto con la UNSE.',
+   detalle:['Luis Ger y la Dra. Leisa Lescano se reunieron con la titular de la Escuela de Artes y Oficios de la UNSE, Ing. Eve Coronel.', 'Acordaron trabajar juntos para acercar, a través de la Defensoría, la capacitación que la Escuela brinda a jóvenes, adultos y adultos mayores.']},
+];
+HISTORIAS.forEach(h => { const n = NOTICIAS.find(x => x.id === h.id) || {}; h.img = n.img; h.fecha = n.fecha; h.link = n.link; });
+const tarjetaHistoria = (h, i) => '<article class="card historia" data-h="' + i + '"><div class="img"><img src="' + h.img + '" alt="" loading="lazy"><em>🔍 Ampliar</em></div><div class="cuerpo"><span class="tag" style="--c:' + h.c + '">' + h.tag + ' · ' + (h.fecha || '').split(' ').pop() + '</span><b>' + h.titulo + '</b><p>' + h.antes + '</p><div class="res">✅ <span>' + h.res + '</span></div></div></article>';
+// la lista va dos veces seguidas para que la pasarela no tenga cortes
+$('#lista-historias').innerHTML = HISTORIAS.map(tarjetaHistoria).join('') + HISTORIAS.map(tarjetaHistoria).join('');
+$('#lista-historias').style.setProperty('--dur', (HISTORIAS.length * 6.5) + 's');
+$('#cuenta-logros').innerHTML = '<b>' + HISTORIAS.length + ' logros</b> documentados';
+let hActual = 0;
+function abrirHistoria(i) {
+  hActual = (i + HISTORIAS.length) % HISTORIAS.length;
+  const h = HISTORIAS[hActual];
+  $('#mh-img').src = h.img; $('#mh-tag').textContent = h.tag; $('#mh-tag').style.setProperty('--c', h.c);
+  $('#mh-fecha').textContent = h.fecha; $('#mh-titulo').textContent = h.titulo;
+  $('#mh-texto').innerHTML = h.detalle.map(p => '<p>' + esc(p) + '</p>').join('');
+  $('#mh-res').textContent = '✅ ' + h.res; $('#mh-link').href = h.link;
+  $('#mh-cont').textContent = (hActual + 1) + ' de ' + HISTORIAS.length;
+  $('#modal-h').classList.add('ver'); $('#pasarela').classList.add('pausa');
+}
+function cerrarHistoria() { $('#modal-h').classList.remove('ver'); $('#pasarela').classList.remove('pausa'); }
+$('#lista-historias').onclick = e => { const t = e.target.closest('.historia'); if (t) abrirHistoria(+t.dataset.h); };
+$('#mh-cerrar').onclick = cerrarHistoria;
+$('#mh-ant').onclick = () => abrirHistoria(hActual - 1);
+$('#mh-sig').onclick = () => abrirHistoria(hActual + 1);
+$('#modal-h').onclick = e => { if (e.target.id === 'modal-h') cerrarHistoria(); };
+document.addEventListener('keydown', e => {
+  if (!$('#modal-h').classList.contains('ver')) return;
+  if (e.key === 'Escape') cerrarHistoria();
+  if (e.key === 'ArrowRight') abrirHistoria(hActual + 1);
+  if (e.key === 'ArrowLeft') abrirHistoria(hActual - 1);
+});
+
+// noticias reales
+const ORDEN_NOTICIAS = [0, 16, 7, 11, 3, 1, 17, 15, 9, 22, 8, 25, 2, 6, 19, 20, 27, 28];
+let mostradas = 0;
+function masNoticias() {
+  const tanda = ORDEN_NOTICIAS.slice(mostradas, mostradas + (mostradas ? 6 : 7));
+  $('#lista-noticias').insertAdjacentHTML('beforeend', tanda.map((id, k) => {
+    const n = NOTICIAS.find(x => x.id === id); if (!n) return '';
+    const dest = mostradas === 0 && k === 0 ? ' destacada' : '';
+    return '<a class="card noticia rev' + dest + '" style="--i:' + (k % 6) + '" href="' + n.link + '" target="_blank" rel="noopener"><div class="img"><img src="' + n.img + '" alt="" loading="lazy"><span>' + esc(n.cat) + '</span></div><div class="cuerpo"><small>' + n.fecha + '</small><b>' + esc(n.titulo) + '</b><p>' + esc(n.resumen) + '…</p></div></a>';
+  }).join(''));
+  mostradas += tanda.length;
+  if (mostradas >= ORDEN_NOTICIAS.length) $('#mas-noticias').style.display = 'none';
+  observar();
+}
+masNoticias();
+$('#mas-noticias').onclick = masNoticias;
+
+// en los medios (notas reales)
+const MEDIOS = [
+  ['Diario Panorama', '#ff4a5c', '24 oct 2026', 'La intendente Fuentes participó del acto por los 30 años de la Defensoría del Pueblo de la capital', 'https://www.diariopanorama.com/noticia/570635/intendente-fuentes-participo-acto-30-anos-defensoria-pueblo-capital'],
+  ['El Liberal', '#5b84ff', '18 jun 2026', 'La Defensoría del Pueblo advierte sobre estafas digitales que utilizan la imagen de medios y figuras públicas', 'https://www.elliberal.com.ar/nota/83224/2026/06/la-defensoria-del-pueblo-advierte-sobre-estafas-digitales-que-utilizan-la-imagen-de-medios-y-figuras-publicas'],
+  ['Diario Panorama', '#ff4a5c', '16 dic 2025', 'Luis Ger, sobre la quita de pensiones por discapacidad: refleja falta de empatía', 'https://diariopanorama.com/noticia/537857/luis-ger-sobre-quita-pensiones-discapacidad-refleja-falta-empatia-presidente'],
+  ['Diario Panorama', '#ff4a5c', '6 ene 2025', 'Luis Ger hizo un balance sobre el trabajo de la Defensoría: soluciones, reclamos y derechos', 'https://www.diariopanorama.com/noticia/505561/luis-ger-hizo-balance-sobre-trabajo-defensoria-soluciones-reclamos-derechos'],
+  ['Canal 7', '#f7cf1d', '12 nov 2023', 'El defensor Luis Ger fue entrevistado en Canal 7', 'https://www.defensoriasgo.gob.ar/el-defensor-luis-ger-fue-entrevistado-en-canal-7/'],
+];
+$('#lista-medios').innerHTML = MEDIOS.map(([m, c, f, t, l], i) => '<a class="card medio rev" style="--i:' + i + '" href="' + l + '" target="_blank" rel="noopener"><span class="m" style="--c:' + c + '"><i></i>' + m + '</span><small>' + f + '</small><b>' + esc(t) + '</b><span class="flecha">↗</span></a>').join('');
+
+// galería
+const GALERIA = [7, 9, 22, 18, 16, 37, 20, 15, 28, 31, 39, 3, 11, 36];
+$('#galeria').innerHTML = GALERIA.map((id, i) => { const n = NOTICIAS.find(x => x.id === id); return n ? '<figure class="rev" style="--i:' + (i % 4) + '" data-id="' + id + '"><img src="' + n.img + '" alt="" loading="lazy"><figcaption>' + esc(n.titulo) + '</figcaption></figure>' : ''; }).join('');
+$('#galeria').onclick = e => { const f = e.target.closest('figure'); if (!f) return; const n = NOTICIAS.find(x => x.id == f.dataset.id); $('#visor img').src = n.img; $('#visor p').textContent = n.titulo + ' · ' + n.fecha; $('#visor').classList.add('ver'); };
+$('#visor').onclick = () => $('#visor').classList.remove('ver');
+
+/* ---- asistente de reclamo ---- */
+let paso = 0, temaSel = null;
+$('#temas').innerHTML = Object.entries(TEMAS).map(([k, t]) => '<button type="button" class="tema" style="--c:' + t.color + '" data-t="' + k + '"><span class="ic">' + t.icono + '</span><b>' + t.nombre + '</b><small>' + t.desc + '</small></button>').join('');
+$('#f-barrio').innerHTML = '<option value="">Elegí tu barrio</option>' + BARRIOS.map(b => '<option>' + b + '</option>').join('');
+$('#temas').onclick = e => { const b = e.target.closest('.tema'); if (!b) return; $$('.tema').forEach(x => x.classList.remove('sel')); b.classList.add('sel'); temaSel = b.dataset.t; setTimeout(() => irPaso(1), 380); };
+function irPaso(p) {
+  paso = p;
+  $('#pasos').style.transform = 'translateX(' + (-100 * p) + '%)';
+  $('#progreso').style.width = (25 * (p + 1)) + '%';
+  $$('#pasos-barra div').forEach((d, i) => { d.classList.toggle('on', i === p); d.classList.toggle('hecho', i < p); });
+  $('#atras').style.visibility = p ? 'visible' : 'hidden';
+  $('#seguir-paso').textContent = p === 3 ? 'Enviar reclamo ✓' : 'Seguir →';
+}
+$('#atras').onclick = () => irPaso(Math.max(0, paso - 1));
+$('#seguir-paso').onclick = () => {
+  if (paso === 0 && !temaSel) return aviso('Elegí un tema para seguir');
+  if (paso === 1 && !$('#f-detalle').value.trim()) return aviso('Contanos qué pasa para seguir');
+  if (paso === 2 && !$('#f-barrio').value) return aviso('Elegí tu barrio');
+  if (paso === 3) return enviar();
+  irPaso(paso + 1);
+};
+$('#f-foto').onchange = e => { [...e.target.files].slice(0, 6).forEach(f => { const r = new FileReader(); r.onload = () => $('#fotos-prev').insertAdjacentHTML('beforeend', '<img src="' + r.result + '" alt="">'); r.readAsDataURL(f); }); };
+$('#ubicar').onclick = () => { $('#ubicar').textContent = '📍 Ubicación tomada · precisión 12 m'; if (!$('#f-barrio').value) $('#f-barrio').value = 'Autonomía'; if (!$('#f-dir').value) $('#f-dir').value = 'Ubicación GPS del vecino'; };
+function enviar() {
+  if (!$('#f-nombre').value.trim() || !$('#f-wa').value.trim()) return aviso('Completá tu nombre y tu WhatsApp');
+  const c = {n:nuevoNumero(), fecha:hoy(), vecino:$('#f-nombre').value.trim(), tema:temaSel, barrio:$('#f-barrio').value, canal:'Web', estado:0, detalle:$('#f-detalle').value.trim(), nuevo:true, lat:-27.79 + (Math.random() - .5) * .03, lng:-64.26 + (Math.random() - .5) * .04};
+  c.area = TEMAS[c.tema].area; c.historial = [{e:0, cuando:hoy() + ' recién', texto:'Reclamo recibido por la web' + ($('#fotos-prev img') ? ', con fotos.' : '.')}];
+  casos.unshift(c);
+  $('#nro').textContent = c.n; $('#asistente').style.display = 'none'; $('#exito').classList.add('ver');
+  confeti(); aviso('📲 El vecino recibe su número por WhatsApp (simulado)');
+}
+$('#otro').onclick = () => {
+  $('#exito').classList.remove('ver'); $('#asistente').style.display = '';
+  ['#f-detalle', '#f-dir', '#f-nombre', '#f-dni', '#f-wa', '#f-mail'].forEach(s => $(s).value = '');
+  $('#f-barrio').value = ''; $('#fotos-prev').innerHTML = ''; $$('.tema').forEach(x => x.classList.remove('sel')); temaSel = null;
+  $('#ubicar').textContent = '📍 Usar mi ubicación actual'; irPaso(0);
+};
+$('#ver-mio').onclick = () => { $('#s-num').value = $('#nro').textContent; buscar(); $('#seguimiento').scrollIntoView({behavior:'smooth'}); };
+
+/* ---- seguimiento ---- */
+$('#ejemplo-num').onclick = e => { e.preventDefault(); $('#s-num').value = 'DPC-2026-0461'; buscar(); };
+$('#s-buscar').onclick = buscar;
+$('#s-num').onkeydown = e => { if (e.key === 'Enter') buscar(); };
+function buscar() {
+  const c = casos.find(x => x.n === $('#s-num').value.trim().toUpperCase()), lt = $('#lt');
+  lt.classList.remove('ver'); void lt.offsetWidth; lt.classList.add('ver');
+  if (!c) { lt.innerHTML = '<p style="color:#ff9aa5">No encontramos ese número. Revisá que esté bien escrito.</p>'; return; }
+  lt.innerHTML = '<div class="lt-cab"><span style="font-size:30px">' + TEMAS[c.tema].icono + '</span><div><b style="font-size:18px">' + c.n + ' · ' + TEMAS[c.tema].nombre + '</b><br><span style="color:var(--muted)">Barrio ' + esc(c.barrio) + ' · ingresó por ' + c.canal + ' · ' + c.area + '</span></div><span style="margin-left:auto">' + chip(c.estado) + '</span></div>' +
+    '<div class="lt-pasos"><span class="lt-linea" id="lt-linea"></span>' + ESTADOS.map((e, i) => {
+      const h = c.historial.filter(x => x.e === i).pop();
+      const cls = i < c.estado || c.estado === 3 ? 'hecho' : i === c.estado ? 'actual' : '';
+      return '<div class="lt-paso ' + cls + '"><div class="pt">' + (cls === 'hecho' ? '✓' : i + 1) + '</div><b>' + e + '</b><small>' + (h ? esc(h.cuando) : 'Pendiente') + '</small></div>';
+    }).join('') + '</div>' + '<p style="color:var(--muted);font-size:14px;margin-top:22px">Última novedad: ' + esc(c.historial[c.historial.length - 1].texto) + '</p>';
+  setTimeout(() => { const l = $('#lt-linea'); if (l) l.style.width = (76 * c.estado / 3) + '%'; }, 80);
+}
+
+/* ---- confeti con los colores del logo ---- */
+function confeti() {
+  const cv = $('#confeti'), ctx = cv.getContext('2d'); cv.width = innerWidth; cv.height = innerHeight;
+  const cols = ['#f7cf1d', '#5fc24a', '#5b84ff', '#ff4a5c', '#ffffff'];
+  const ps = Array.from({length:180}, () => ({x:innerWidth / 2 + (Math.random() - .5) * 200, y:innerHeight * .45, vx:(Math.random() - .5) * 16, vy:-Math.random() * 15 - 4, r:Math.random() * 7 + 4, c:cols[Math.floor(Math.random() * cols.length)], g:Math.random() * Math.PI, vg:(Math.random() - .5) * .3}));
+  const t0 = performance.now();
+  (function cuadro(t) {
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ps.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += .42; p.vx *= .99; p.g += p.vg; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.g); ctx.fillStyle = p.c; ctx.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2); ctx.restore(); });
+    if (t - t0 < 3200) requestAnimationFrame(cuadro); else ctx.clearRect(0, 0, cv.width, cv.height);
+  })(t0);
+}
+
+/* ================= WhatsApp ================= */
+const GUION = [
+  {de:'vecino', t:'Hola, buenas tardes 👋'},
+  {de:'bot', t:'¡Hola! Soy el asistente de la *Defensoría del Pueblo de la Ciudad*. Contame qué pasó y te ayudo a hacer el reclamo.', paso:0},
+  {de:'vecino', t:'Se cayó un árbol grande en la esquina de mi casa, en el barrio Autonomía, y tapa toda la vereda. Ya llamé y nadie vino…', paso:0},
+  {de:'bot', ia:true, t:'Entendí 👍 Es un *árbol caído* en *Barrio Autonomía*, con riesgo para los peatones. ¿Me compartís tu ubicación y una foto?', paso:1},
+  {de:'vecino', ubic:true, t:'Ubicación compartida'},
+  {de:'vecino', foto:'img/n33.jpg', t:''},
+  {de:'bot', t:'Listo ✅ Registré tu reclamo N.º *{NUM}* (Árboles y poda, prioridad alta). Lo toma la Secretaría General.\n\nPodés seguirlo con ese número en la web de la Defensoría.', crea:true, paso:2},
+  {dia:'2 días después'},
+  {de:'bot', t:'📣 Novedad sobre tu reclamo *{NUM}*: la Defensoría pidió con urgencia el retiro del árbol. Estado: *En gestión* 🟡', avanza:true, paso:3},
+  {de:'vecino', t:'Muchas gracias!! 🙏'},
+];
+let waPaso = 0, waTimer = null, waNum = null;
+const negrita = t => esc(t).replace(/\*(.+?)\*/g, '<b>$1</b>').replace(/\n/g, '<br>');
+const horaWa = () => { const d = new Date(); return d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0'); };
+function waSiguiente() {
+  if (waPaso >= GUION.length) { $('#wa-play').textContent = '✔ Conversación completa'; $('#wa-estado').textContent = 'Cuenta oficial · en línea'; return; }
+  const m = GUION[waPaso++], chat = $('#wa-chat');
+  if (m.paso !== undefined) $$('.wa-paso').forEach((x, i) => x.classList.toggle('on', i === m.paso));
+  if (m.crea) {
+    waNum = nuevoNumero();
+    const c = {n:waNum, fecha:hoy(), vecino:'Vecina · WhatsApp 385 4••• 210', tema:'arboles', barrio:'Autonomía', canal:'WhatsApp', estado:0, nuevo:true, lat:-27.81, lng:-64.275,
+      detalle:'(Mensaje por WhatsApp) Se cayó un árbol grande en la esquina de su casa y tapa toda la vereda. Envió ubicación y foto.', area:TEMAS.arboles.area};
+    c.historial = [{e:0, cuando:hoy() + ' recién', texto:'Recibido por WhatsApp. La IA lo clasificó como Árboles y poda (prioridad alta).'}];
+    casos.unshift(c);
+  }
+  if (m.avanza && waNum) { const c = casos.find(x => x.n === waNum); if (c) { c.estado = 2; c.historial.push({e:1, cuando:'2 días después', texto:'Lo toma la Secretaría General.'}, {e:2, cuando:'2 días después', texto:'Se pidió con urgencia el retiro del árbol.'}); } }
+  let html;
+  if (m.dia) html = '<div class="dia">' + m.dia + '</div>';
+  else {
+    const txt = (m.t || '').replace(/\{NUM\}/g, waNum || '');
+    let cuerpo;
+    if (m.ubic) cuerpo = '<div class="ubic">📍</div>Barrio Autonomía · ' + txt;
+    else if (m.foto) cuerpo = '<div class="foto"><img src="' + m.foto + '" alt=""></div>';
+    else cuerpo = (m.ia ? '<span class="etq">🤖 IA · CLASIFICADO</span><br>' : '') + negrita(txt);
+    html = '<div class="msj ' + m.de + (m.ia ? ' ia' : '') + '">' + cuerpo + '<span class="hora">' + horaWa() + (m.de === 'vecino' ? ' <em>✓✓</em>' : '') + '</span></div>';
+  }
+  const espera = m.de === 'bot' ? 1100 : 350;
+  if (m.de === 'bot') { chat.insertAdjacentHTML('beforeend', '<div class="escribe" id="escribe"><i></i><i></i><i></i></div>'); $('#wa-estado').textContent = 'escribiendo…'; chat.scrollTop = chat.scrollHeight; }
+  waTimer = setTimeout(() => {
+    const e = $('#escribe'); if (e) e.remove(); $('#wa-estado').textContent = 'Cuenta oficial · en línea';
+    chat.insertAdjacentHTML('beforeend', html); chat.scrollTop = chat.scrollHeight;
+    waTimer = setTimeout(waSiguiente, m.de === 'bot' ? 1600 : 1000);
+  }, espera);
+}
+$('#wa-play').onclick = () => { if (waPaso === 0) { $('#wa-play').textContent = '… reproduciendo'; waSiguiente(); } };
+$('#wa-reset').onclick = () => { clearTimeout(waTimer); waPaso = 0; waNum = null; $('#wa-chat').innerHTML = ''; $$('.wa-paso').forEach(x => x.classList.remove('on')); $('#wa-play').textContent = '▶ Reproducir conversación'; };
+
+/* ================= Panel ================= */
+$('#p-estado').innerHTML += ESTADOS.map((e, i) => '<option value="' + i + '">' + e + '</option>').join('');
+$('#p-tema').innerHTML += Object.entries(TEMAS).map(([k, t]) => '<option value="' + k + '">' + t.nombre + '</option>').join('');
+['#p-buscar', '#p-estado', '#p-tema', '#p-canal'].forEach(s => $(s).oninput = () => pintarPanel(false));
+let mapa = null, capa = null;
+function pintarPanel(animar) {
+  const abiertos = casos.filter(c => c.estado < 3).length, nuevos = casos.filter(c => c.nuevo).length;
+  $('#badge-nuevos').textContent = nuevos; $('#badge-nuevos').style.display = nuevos ? '' : 'none';
+  $('#kpis').innerHTML = [
+    ['Abiertos', abiertos, '#5b84ff', '+3 hoy'], ['En gestión', casos.filter(c => c.estado === 2).length, '#f7cf1d', 'con nota enviada'],
+    ['Resueltos este mes', 41 + casos.filter(c => c.estado === 3).length, '#5fc24a', '▲ 18 % vs. octubre'], ['Respuesta promedio', 9, '#ff4a5c', 'días · ▼ 2 días'],
+  ].map(k => '<div class="card kpi" style="--c:' + k[2] + '"><small>' + k[0] + '</small><b data-cuenta="' + k[1] + '">' + k[1] + '</b><span class="var">' + k[3] + '</span></div>').join('');
+  if (animar) $$('#kpis [data-cuenta]').forEach(contar);
+  const q = $('#p-buscar').value.toLowerCase(), fe = $('#p-estado').value, ft = $('#p-tema').value, fc = $('#p-canal').value;
+  const lista = casos.filter(c => (!q || (c.n + c.vecino + c.detalle + c.barrio).toLowerCase().includes(q)) && (fe === '' || c.estado == fe) && (!ft || c.tema === ft) && (!fc || c.canal === fc));
+  $('#p-filas').innerHTML = lista.map((c, k) => '<tr class="fila' + (c.nuevo ? ' nuevo' : '') + '" style="--k:' + (animar ? k : 0) + '" data-n="' + c.n + '"><td><b>' + c.n.slice(9) + '</b>' + (c.nuevo ? '<span class="nuevo-tag">NUEVO</span>' : '') + '<br><small style="color:var(--dim)">' + c.fecha + '</small></td><td>' + esc(c.vecino) + '</td><td>' + TEMAS[c.tema].icono + ' ' + TEMAS[c.tema].nombre + '</td><td>' + esc(c.barrio) + '</td><td class="canal">' + c.canal + '</td><td>' + chip(c.estado) + '</td></tr>').join('')
+    || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:30px">No hay reclamos con esos filtros.</td></tr>';
+  $$('tr.fila').forEach(f => f.onclick = () => abrirCaso(f.dataset.n));
+  // mini barras por tema
+  const porTema = {}; casos.filter(c => c.estado < 3).forEach(c => porTema[c.tema] = (porTema[c.tema] || 0) + 1);
+  const max = Math.max(1, ...Object.values(porTema));
+  $('#mini-temas').innerHTML = Object.entries(porTema).sort((a, b) => b[1] - a[1]).map(([k, v]) => '<div class="mini" style="--c:' + TEMAS[k].color + '"><span>' + TEMAS[k].icono + '</span><div class="riel"><i data-w="' + (v / max * 100) + '"></i></div><b>' + v + '</b></div>').join('');
+  requestAnimationFrame(() => $$('#mini-temas i').forEach(i => i.style.width = i.dataset.w + '%'));
+  pintarMapa();
+}
+function pintarMapa() {
+  if (!window.L) { $('#mapa').outerHTML = '<div class="mapa-falla" id="mapa">🗺️ El mapa necesita conexión a internet.<br>Con conexión se ven los reclamos sobre la ciudad.</div>'; return; }
+  if (!mapa) {
+    mapa = L.map('mapa', {zoomControl:false, scrollWheelZoom:false}).setView([-27.795, -64.265], 13);
+    const esri = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/';
+    L.tileLayer(esri + 'World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {attribution:'Mapa © Esri · © OpenStreetMap', maxZoom:16}).addTo(mapa);
+    L.tileLayer(esri + 'World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', {maxZoom:16}).addTo(mapa);
+    capa = L.layerGroup().addTo(mapa);
+  }
+  setTimeout(() => mapa.invalidateSize(), 120);
+  capa.clearLayers();
+  casos.forEach(c => {
+    const col = TEMAS[c.tema].color;
+    const icono = L.divIcon({className:'', iconSize:[18, 18], html:'<div class="' + (c.estado < 3 ? 'pulso' : '') + '" style="width:18px;height:18px;border-radius:50%;background:' + col + ';border:3px solid #0b1222;opacity:' + (c.estado === 3 ? .45 : 1) + '"></div>'});
+    L.marker([c.lat, c.lng], {icon:icono}).addTo(capa).bindPopup('<b>' + c.n + '</b><br>' + TEMAS[c.tema].icono + ' ' + TEMAS[c.tema].nombre + '<br>' + ESTADOS[c.estado]).on('click', () => abrirCaso(c.n));
+  });
+}
+function abrirCaso(n) {
+  const c = casos.find(x => x.n === n); if (!c) return;
+  c.nuevo = false;
+  const ia = IA[c.tema];
+  $('#c-num').textContent = c.n; $('#c-estado').innerHTML = chip(c.estado);
+  $('#c-cuerpo').innerHTML =
+    '<div class="dato"><span>Vecino</span><b>' + esc(c.vecino) + '</b></div>' +
+    '<div class="dato"><span>Tema</span><div>' + TEMAS[c.tema].icono + ' ' + TEMAS[c.tema].nombre + '</div></div>' +
+    '<div class="dato"><span>Barrio</span><div>' + esc(c.barrio) + '</div></div>' +
+    '<div class="dato"><span>Ingreso</span><div>' + c.canal + ' · ' + c.fecha + '</div></div>' +
+    '<div class="dato"><span>Área</span><div><select id="c-area">' + AREAS.map(a => '<option' + (a === c.area ? ' selected' : '') + '>' + a + '</option>').join('') + '</select></div></div>' +
+    '<h4>Lo que contó el vecino</h4><div class="relato">' + esc(c.detalle) + '</div>' +
+    '<h4>Sugerencia de la IA</h4><div class="ia-caja"><div class="t">ANÁLISIS AUTOMÁTICO</div><ul><li>' + ia[0] + '</li><li>' + ia[1] + '</li></ul><div class="sug" id="c-sug"></div><div class="acciones" style="margin-top:10px"><button id="c-usar">Usar esta respuesta</button></div></div>' +
+    '<h4>Cambiar estado</h4><div class="acciones">' + ESTADOS.map((e, i) => '<button data-e="' + i + '" class="' + (i === c.estado ? 'activo' : '') + '">' + e + '</button>').join('') + '</div>' +
+    '<h4>Responder al vecino</h4><textarea id="c-msj" placeholder="Escribí el mensaje…"></textarea>' +
+    '<div class="acciones" style="margin-top:8px"><button id="c-enviar">💬 Enviar por WhatsApp</button><button id="c-nota">🔒 Nota interna</button></div>' +
+    '<h4>Historial</h4><div class="historial">' + c.historial.slice().reverse().map(h => '<div>' + esc(h.texto) + '<small>' + esc(h.cuando) + ' · ' + ESTADOS[h.e] + '</small></div>').join('') + '</div>';
+  escribirTexto($('#c-sug'), '“' + ia[2] + '”');
+  $('#c-usar').onclick = () => { $('#c-msj').value = ia[2]; $('#c-msj').focus(); };
+  $('#c-area').onchange = e => { c.area = e.target.value; c.historial.push({e:c.estado, cuando:hoy() + ' recién', texto:'Derivado a ' + c.area + '.'}); abrirCaso(n); pintarPanel(false); };
+  $$('#c-cuerpo [data-e]').forEach(b => b.onclick = () => {
+    c.estado = +b.dataset.e; c.historial.push({e:c.estado, cuando:hoy() + ' recién', texto:'Estado: ' + ESTADOS[c.estado] + '. Se avisó al vecino por WhatsApp.'});
+    aviso('✔ Estado actualizado · el vecino recibe el aviso al instante (simulado)'); abrirCaso(n); pintarPanel(false);
+  });
+  $('#c-enviar').onclick = () => { if (!$('#c-msj').value.trim()) return aviso('Escribí un mensaje'); c.historial.push({e:c.estado, cuando:hoy() + ' recién', texto:'Mensaje al vecino: ' + $('#c-msj').value}); aviso('💬 Mensaje enviado por WhatsApp (simulado)'); abrirCaso(n); };
+  $('#c-nota').onclick = () => { if (!$('#c-msj').value.trim()) return aviso('Escribí la nota'); c.historial.push({e:c.estado, cuando:hoy() + ' recién', texto:'Nota interna: ' + $('#c-msj').value}); aviso('🔒 Nota interna guardada'); abrirCaso(n); };
+  $('#cajon').classList.add('abierto'); $('#velo').classList.add('ver');
+}
+function escribirTexto(el, txt) { clearInterval(escribirTexto.t); el.textContent = ''; let i = 0; escribirTexto.t = setInterval(() => { el.textContent += txt[i++] || ''; if (i >= txt.length) clearInterval(escribirTexto.t); }, 14); }
+function cerrarCajon() { if (!$('#cajon').classList.contains('abierto')) return; $('#cajon').classList.remove('abierto'); $('#velo').classList.remove('ver'); pintarPanel(false); }
+$('#c-cerrar').onclick = cerrarCajon; $('#velo').onclick = cerrarCajon;
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { cerrarCajon(); $('#visor').classList.remove('ver'); } });
+
+/* ================= Tablero (datos de ejemplo) ================= */
+function pintarTablero() {
+  const base = {servicios:318, limpieza:276, transporte:187, arboles:149, consumidor:121, vecinos:96, energia:84, otros:53};
+  casos.forEach(c => base[c.tema]++);
+  const total = Object.values(base).reduce((a, b) => a + b, 0);
+  $('#t-kpis').innerHTML = [
+    ['Reclamos en 2026', total, '#5b84ff', 'ene–nov'], ['Resueltos', Math.round(total * .71), '#5fc24a', '71 % del total'],
+    ['Respuesta promedio', 9, '#f7cf1d', 'días'], ['Vecinos atendidos en barrios', 412, '#ff4a5c', 'en 11 operativos'],
+  ].map(k => '<div class="card kpi" style="--c:' + k[2] + '"><small>' + k[0] + '</small><b data-cuenta="' + k[1] + '">0</b><span class="var" style="color:var(--muted)">' + k[3] + '</span></div>').join('');
+  $$('#t-kpis [data-cuenta]').forEach(contar);
+  const max = Math.max(...Object.values(base));
+  $('#t-temas').innerHTML = Object.entries(base).sort((a, b) => b[1] - a[1]).map(([k, v], i) => '<div class="barra" style="--c:' + TEMAS[k].color + ';--k:' + i + '"><span>' + TEMAS[k].icono + ' ' + TEMAS[k].nombre + '</span><div class="riel"><i data-w="' + (v / max * 100) + '"></i></div><b>' + v + '</b></div>').join('');
+  const barrios = [['Autonomía', 188], ['Mariano Moreno', 171], ['Siglo XXI', 143], ['Centro', 129], ['Huaico Hondo', 118], ['Ejército Argentino', 104], ['Jorge Newbery', 87]];
+  $('#t-barrios').innerHTML = barrios.map(([b, v], i) => '<div class="barra" style="--k:' + i + ';--c:linear-gradient(90deg,#5b84ff,#a78bfa)"><span>' + b + '</span><div class="riel"><i data-w="' + (v / 188 * 100) + '"></i></div><b>' + v + '</b></div>').join('');
+  // línea mensual
+  const meses = [['E', 61], ['F', 74], ['M', 98], ['A', 105], ['M', 112], ['J', 121], ['J', 117], ['A', 133], ['S', 141], ['O', 152], ['N', 88]];
+  const W = 640, H = 220, pad = 24, x = i => pad + i * (W - pad * 2) / (meses.length - 1), y = v => H - 34 - (v / 170) * (H - 60);
+  const pts = meses.map(([, v], i) => [x(i), y(v)]);
+  const d = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  const svg = $('#t-linea'); [...svg.querySelectorAll(':not(defs):not(defs *)')].forEach(n => n.remove());
+  svg.insertAdjacentHTML('beforeend', '<path class="area" d="' + d + ' L' + x(meses.length - 1) + ' ' + (H - 34) + ' L' + x(0) + ' ' + (H - 34) + ' Z"/><path class="trazo" id="t-trazo" d="' + d + '"/>' +
+    pts.map(p => '<circle class="pto" cx="' + p[0] + '" cy="' + p[1] + '" r="4.5"/>').join('') + meses.map(([m], i) => '<text x="' + x(i) + '" y="' + (H - 10) + '" text-anchor="middle">' + m + '</text>').join(''));
+  const tr = $('#t-trazo'), L0 = tr.getTotalLength(); tr.style.strokeDasharray = L0; tr.style.strokeDashoffset = L0; tr.getBoundingClientRect();
+  tr.style.transition = 'stroke-dashoffset 1.8s cubic-bezier(.2,.9,.2,1)';
+  // dona
+  const canales = [['WhatsApp', 44, '#25d366'], ['Web', 31, '#5b84ff'], ['En tu barrio', 17, '#f7cf1d'], ['Presencial', 8, '#ff4a5c']];
+  $('#t-leyenda').innerHTML = canales.map(c => '<span style="--c:' + c[2] + '">' + c[0] + '<b>' + c[1] + ' %</b></span>').join('');
+  $('#t-total-dona').dataset.cuenta = total;
+  const tab = $('#tablero'); tab.classList.remove('anim');
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    tab.classList.add('anim'); tr.style.strokeDashoffset = 0;
+    $$('#tablero .barra i').forEach(i => i.style.width = i.dataset.w + '%'); contar($('#t-total-dona'));
+  }));
+}
+$('#t-informe').onclick = () => aviso('📄 Se generaría el informe anual 2026 en PDF, con todos estos números');
+
+/* ================= arranque ================= */
+window.addEventListener('load', () => setTimeout(() => { $('#pre').classList.add('fuera'); observar(); }, 1150));
+setTimeout(() => { $('#pre').classList.add('fuera'); observar(); }, 3500);
+</script>
+</body>
+</html>
